@@ -108,6 +108,6 @@ window.addEventListener('DOMContentLoaded', async () => {
     nprobe: 8,
     ef: 10,
   });
-  // feder.searchRandTestVec();
-  feder.searchById(10583);
+  feder.searchRandTestVec();
+  // feder.searchById(1156);
 });

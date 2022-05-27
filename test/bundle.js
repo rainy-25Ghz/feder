@@ -17353,6 +17353,6 @@ ${indentData}`);
       nprobe: 8,
       ef: 10
     });
-    feder.searchById(10583);
+    feder.searchRandTestVec();
   }));
 })();
