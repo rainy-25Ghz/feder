@@ -35943,8 +35943,8 @@ ${indentData}`);
                 const node = nodes[j];
                 const { id: id2, x: x3, y: y4, type: type2 } = node;
                 let color2 = new Color2(), opacity = 1;
-                if (type2 === HNSW_NODE_TYPE.Entry) {
-                  color2.setHex(221);
+                if (type2 === HNSW_NODE_TYPE.Coarse) {
+                  color2.setHex(3355460);
                 } else if (type2 === HNSW_NODE_TYPE.Candidate) {
                   color2.setHex(11141375);
                 } else if (type2 === HNSW_NODE_TYPE.Fine) {
@@ -36081,7 +36081,7 @@ ${indentData}`);
             const renderPass = new RenderPass(scene, camera);
             renderPass.clearColor = new Color2(0);
             composer.addPass(renderPass);
-            const bloomPass = new UnrealBloomPass(new Vector2(canvas.clientWidth, canvas.clientHeight), 1.5, 0.7, 0.85);
+            const bloomPass = new UnrealBloomPass(new Vector2(canvas.clientWidth, canvas.clientHeight), 1.5, 0.7, 0.5);
             composer.addPass(bloomPass);
           };
           setupPostProcessing();
@@ -36095,7 +36095,7 @@ ${indentData}`);
             const id2 = pick();
             const object = spheres[id2];
             if (object) {
-              object.material.emissive.setHex(11162880);
+              object.material.emissive.setHex(16764113);
             }
             if (lastObject !== object && lastObject) {
               lastObject.material.emissive.setHex(0);

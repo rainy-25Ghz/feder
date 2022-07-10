@@ -122,8 +122,8 @@ export default class BaseView {
             const { id, x, y, type } = node;
             let color = new THREE.Color(),
               opacity = 1;
-            if (type === HNSW_NODE_TYPE.Entry) {
-              color.setHex(0x0000dd);
+            if (type === HNSW_NODE_TYPE.Coarse) {
+              color.setHex(0x333344);
             } else if (type === HNSW_NODE_TYPE.Candidate) {
               color.setHex(0xaa00ff);
             } else if (type === HNSW_NODE_TYPE.Fine) {
@@ -323,7 +323,7 @@ export default class BaseView {
           new THREE.Vector2(canvas.clientWidth, canvas.clientHeight),
           1.5,
           0.7,
-          0.85
+          0.5
         )
         // bloomPass.threshold = 0.7;
         composer.addPass(bloomPass);
@@ -348,7 +348,7 @@ export default class BaseView {
         const object = spheres[id];
         if (object) {
           //change emissive color
-          object.material.emissive.setHex(0xaa5500);
+          object.material.emissive.setHex(0xffccd1);
         }
         if (lastObject !== object && lastObject) {
           lastObject.material.emissive.setHex(0x000000);
