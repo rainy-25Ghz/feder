@@ -35917,8 +35917,8 @@ ${indentData}`);
         const searchViewLayoutData = yield this.searchViewHandler(searchRes);
         const setup3d = () => {
           const scene = new Scene();
-          const camera = new OrthographicCamera(canvas.clientWidth, canvas.clientWidth * -1, canvas.clientHeight, canvas.clientHeight * -1, -2e3, 2e3);
-          camera.position.z = 10;
+          const camera = new OrthographicCamera(canvas.clientWidth, canvas.clientWidth * -1, canvas.clientHeight, canvas.clientHeight * -1, -4e3, 4e3);
+          camera.position.z = -10;
           camera.position.y = 1;
           camera.lookAt(scene.position);
           const renderer = new WebGLRenderer({ canvas, antialias: true });
@@ -35932,6 +35932,7 @@ ${indentData}`);
           setupLights();
           let spheres = [];
           let entryPts = [], finePts = [];
+          let maxX = 0, maxY = 0, minX = 0, minY = 0;
           const setupNodes = () => {
             let z0 = 0;
             for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
@@ -35961,6 +35962,10 @@ ${indentData}`);
                 });
                 const sphere = new Mesh(geometry, material);
                 sphere.position.set(x3, z0, y4);
+                maxX = Math.max(maxX, x3);
+                maxY = Math.max(maxY, y4);
+                minX = Math.min(minX, x3);
+                minY = Math.min(minY, y4);
                 spheres.push(sphere);
                 scene.add(sphere);
               }
@@ -35968,6 +35973,27 @@ ${indentData}`);
             }
           };
           setupNodes();
+          let planes = [];
+          const setupPlanes = () => {
+            console.log(maxX, maxY, minX, minY);
+            let z0 = -10;
+            for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
+              const planeGeometry = new PlaneGeometry(maxX - minX, maxY - minY, 1, 1);
+              const planeMaterial = new MeshBasicMaterial({
+                color: 22015,
+                side: DoubleSide,
+                opacity: 0.2,
+                transparent: true
+              });
+              const plane = new Mesh(planeGeometry, planeMaterial);
+              plane.position.set(0, z0, 0);
+              plane.rotateX(Math.PI / 2);
+              z0 += 400;
+              scene.add(plane);
+              planes.push(plane);
+            }
+          };
+          setupPlanes();
           const pickingScene = new Scene();
           const pickingRenderer = new WebGLRenderTarget(canvas.clientWidth, canvas.clientHeight);
           pickingScene.background = new Color2(16777215);
@@ -35992,11 +36018,57 @@ ${indentData}`);
               mesh.position.set(sphere.position.x, sphere.position.y, sphere.position.z);
               pickingScene.add(mesh);
             }
+            for (let i = spheres.length; i < planes.length + spheres.length; i++) {
+              const plane = planes[i - spheres.length];
+              const geometry = plane.geometry.clone();
+              const color2 = new Color2();
+              applyVertexColors(geometry, color2.setHex(i));
+              const mesh = new Mesh(geometry, pickingMaterial);
+              mesh.position.set(plane.position.x, plane.position.y, plane.position.z);
+              mesh.rotation.set(plane.rotation.x, plane.rotation.y, plane.rotation.z);
+              pickingScene.add(mesh);
+            }
           };
           setupPickingObjects();
           let pointer = { x: -1, y: -1 };
           canvas.addEventListener("mousemove", (e) => {
             pointer = { x: e.offsetX, y: e.offsetY };
+          });
+          let selectedLayer = null;
+          let render2d = false;
+          canvas.addEventListener("mousedown", (e) => {
+            if (!render2d) {
+              render2d = !render2d;
+              const id2 = pick();
+              const plane = planes[id2 - spheres.length];
+              if (plane) {
+                plane.material.color.setHex(16776960);
+                selectedLayer = plane;
+                camera.position.y = selectedLayer.position.y + 400;
+                camera.position.z = 0;
+                camera.position.x = 0;
+                camera.lookAt(new Vector3(0, selectedLayer.position.y, 0));
+                const layerId = searchViewLayoutData.visData.length - 1 - (selectedLayer.position.y + 10) / 400;
+                scene.traverse((child) => {
+                  console.log(selectedLayer.position.y + 10);
+                  if (child.position.y !== selectedLayer.position.y + 10) {
+                    if (child.type === spheres[0].type) {
+                      child.visible = false;
+                    }
+                  }
+                  if (child.name.substring(0, 4) === "link" && child.name !== `link-${layerId}`) {
+                    child.visible = false;
+                  }
+                  if (child.name === "link-up") {
+                    child.visible = false;
+                  }
+                });
+              }
+            }
+          });
+          canvas.addEventListener("mouseup", (e) => {
+            if (selectedLayer) {
+            }
           });
           const pick = () => {
             if (pointer.x < 0 || pointer.y < 0)
@@ -36043,6 +36115,7 @@ ${indentData}`);
                   transparent: true
                 });
                 const line = new Line(lineGeometry, material);
+                line.name = `link-${i}`;
                 if (opacity > 0)
                   lines.push(line);
               }
@@ -36057,6 +36130,7 @@ ${indentData}`);
                   color: new Color2(15658496)
                 });
                 const line = new Line(lineGeometry, material);
+                line.name = `link-up`;
                 lines.push(line);
               }
               z0 += 400;
@@ -36064,7 +36138,6 @@ ${indentData}`);
             const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
             for (let i = 0; i < lines.length; i++) {
               scene.add(lines[i]);
-              yield delay(500);
             }
           });
           setupLinks();

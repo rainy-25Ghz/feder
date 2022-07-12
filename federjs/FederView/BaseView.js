@@ -71,10 +71,10 @@ export default class BaseView {
         canvas.clientWidth * -1,
         canvas.clientHeight,
         canvas.clientHeight * -1,
-        -2000,
-        2000
+        -4000,
+        4000
       );
-      camera.position.z = 10;
+      camera.position.z = -10;
       camera.position.y = 1;
       camera.lookAt(scene.position);
 
@@ -95,6 +95,10 @@ export default class BaseView {
       let spheres = [];
       let entryPts = [],
         finePts = [];
+      let maxX = 0,
+        maxY = 0,
+        minX = 0,
+        minY = 0;
       // add the nodes to the scene
       const setupNodes = () => {
         let z0 = 0;
@@ -140,6 +144,10 @@ export default class BaseView {
             });
             const sphere = new THREE.Mesh(geometry, material);
             sphere.position.set(x, z0, y);
+            maxX = Math.max(maxX, x);
+            maxY = Math.max(maxY, y);
+            minX = Math.min(minX, x);
+            minY = Math.min(minY, y);
             spheres.push(sphere);
             scene.add(sphere);
           }
@@ -148,6 +156,33 @@ export default class BaseView {
         }
       };
       setupNodes();
+
+      let planes = [];
+      const setupPlanes = () => {
+        console.log(maxX, maxY, minX, minY);
+        let z0 = -10;
+        for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
+          const planeGeometry = new THREE.PlaneGeometry(
+            maxX - minX,
+            maxY - minY,
+            1,
+            1
+          );
+          const planeMaterial = new THREE.MeshBasicMaterial({
+            color: 0x0055ff,
+            side: THREE.DoubleSide,
+            opacity: 0.2,
+            transparent: true,
+          });
+          const plane = new THREE.Mesh(planeGeometry, planeMaterial);
+          plane.position.set(0, z0, 0);
+          plane.rotateX(Math.PI / 2);
+          z0 += 400;
+          scene.add(plane);
+          planes.push(plane);
+        }
+      };
+      setupPlanes();
       //gpu picking
       const pickingScene = new THREE.Scene();
       const pickingRenderer = new THREE.WebGLRenderTarget(
@@ -189,6 +224,26 @@ export default class BaseView {
           );
           pickingScene.add(mesh);
         }
+        for (let i = spheres.length; i < planes.length + spheres.length; i++) {
+          const plane = planes[i - spheres.length];
+          //get geometry of the plane
+          const geometry = plane.geometry.clone();
+          const color = new THREE.Color();
+          applyVertexColors(geometry, color.setHex(i));
+          const mesh = new THREE.Mesh(geometry, pickingMaterial);
+          mesh.position.set(
+            plane.position.x,
+            plane.position.y,
+            plane.position.z
+          );
+          //set the same rotation as plane
+          mesh.rotation.set(
+            plane.rotation.x,
+            plane.rotation.y,
+            plane.rotation.z
+          );
+          pickingScene.add(mesh);
+        }
       };
       setupPickingObjects();
       //get pointer coordinates in canvas
@@ -196,6 +251,51 @@ export default class BaseView {
       //setup the mouse events
       canvas.addEventListener('mousemove', (e) => {
         pointer = { x: e.offsetX, y: e.offsetY };
+      });
+      let selectedLayer = null;
+      let render2d = false;
+      canvas.addEventListener('mousedown', (e) => {
+        if (!render2d) {
+          render2d = !render2d;
+          const id = pick();
+          const plane = planes[id - spheres.length];
+          if (plane) {
+            plane.material.color.setHex(0xffff00);
+            selectedLayer = plane;
+
+            camera.position.y = selectedLayer.position.y + 400;
+            camera.position.z = 0;
+            camera.position.x = 0;
+            camera.lookAt(new THREE.Vector3(0, selectedLayer.position.y, 0));
+            const layerId =
+              searchViewLayoutData.visData.length -
+              1 -
+              (selectedLayer.position.y + 10) / 400;
+            scene.traverse((child) => {
+              console.log(selectedLayer.position.y + 10);
+              if (child.position.y !== selectedLayer.position.y + 10) {
+                if (child.type === spheres[0].type) {
+                  child.visible = false;
+                }
+              }
+              if (
+                child.name.substring(0, 4) === 'link' &&
+                child.name !== `link-${layerId}`
+              ) {
+                child.visible = false;
+              }
+              if(child.name==="link-up"){
+                child.visible = false;
+              }
+            });
+          }
+        }
+      });
+      canvas.addEventListener('mouseup', (e) => {
+        if (selectedLayer) {
+          // selectedLayer.material.color.setHex(0x0055ff);
+          // selectedLayer = null;
+        }
       });
       const pick = () => {
         if (pointer.x < 0 || pointer.y < 0) return -1;
@@ -271,6 +371,7 @@ export default class BaseView {
             });
             //create a new line
             const line = new THREE.Line(lineGeometry, material);
+            line.name = `link-${i}`;
             if (opacity > 0) lines.push(line);
           }
           if (i > 0) {
@@ -284,6 +385,7 @@ export default class BaseView {
               color: new THREE.Color(0xeeee00),
             });
             const line = new THREE.Line(lineGeometry, material);
+            line.name=`link-up`
             lines.push(line);
           }
           z0 += 400;
@@ -293,7 +395,7 @@ export default class BaseView {
 
         for (let i = 0; i < lines.length; i++) {
           scene.add(lines[i]);
-          await delay(500);
+          // await delay(500);
         }
       };
       setupLinks();
@@ -324,7 +426,7 @@ export default class BaseView {
           1.5,
           0.7,
           0.5
-        )
+        );
         // bloomPass.threshold = 0.7;
         composer.addPass(bloomPass);
         // composer.addPass(bloomPass);
