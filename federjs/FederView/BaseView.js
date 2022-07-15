@@ -57,16 +57,22 @@ export default class BaseView {
     const canvas = document.createElement('canvas');
     canvas.width = this.clientWidth;
     canvas.height = this.clientHeight;
-    document.body.appendChild(canvas);
+    dom.appendChild(canvas);
 
     const searchViewLayoutData = await this.searchViewHandler(searchRes);
-    // console.log(searchViewLayoutData.visData, searchViewLayoutData.id2forcePos);
+    console.log(searchViewLayoutData);
+
+    //setup info panel
+    const infoPanel = document.createElement('div');
+    //set white font color
+    infoPanel.style.color = '#fff';
+    
 
     const setup3d = () => {
       const scene = new THREE.Scene();
 
       //setup the orthographic camera
-      const camera = new THREE.OrthographicCamera(
+      let camera = new THREE.OrthographicCamera(
         canvas.clientWidth,
         canvas.clientWidth * -1,
         canvas.clientHeight,
@@ -92,15 +98,15 @@ export default class BaseView {
         scene.add(ambientLight);
       };
       setupLights();
+
       let spheres = [];
-      let entryPts = [],
-        finePts = [];
+      let entryPts = [];
+      let finePts = [];
       let maxX = 0,
         maxY = 0,
         minX = 0,
         minY = 0;
-      // add the nodes to the scene
-      const setupNodes = () => {
+      const setupSpheres = () => {
         let z0 = 0;
         for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
           const { entryIds, fineIds, links, nodes } =
@@ -143,24 +149,23 @@ export default class BaseView {
               flatShading: true,
             });
             const sphere = new THREE.Mesh(geometry, material);
+            sphere.hnswData = node;
             sphere.position.set(x, z0, y);
             maxX = Math.max(maxX, x);
             maxY = Math.max(maxY, y);
             minX = Math.min(minX, x);
             minY = Math.min(minY, y);
             spheres.push(sphere);
-            scene.add(sphere);
+            sphere.name = `layer_${i}_node_${j}`;
           }
-
-          z0 += 400;
+          z0 += -400;
         }
       };
-      setupNodes();
+      setupSpheres();
 
       let planes = [];
       const setupPlanes = () => {
-        console.log(maxX, maxY, minX, minY);
-        let z0 = -10;
+        let z0 = -30;
         for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
           const planeGeometry = new THREE.PlaneGeometry(
             maxX - minX,
@@ -173,166 +178,22 @@ export default class BaseView {
             side: THREE.DoubleSide,
             opacity: 0.2,
             transparent: true,
+            depthWrite: false,
           });
           const plane = new THREE.Mesh(planeGeometry, planeMaterial);
-          plane.position.set(0, z0, 0);
+          plane.position.set(maxX / 2 + minX / 2, z0, maxY / 2 + minY / 2);
           plane.rotateX(Math.PI / 2);
-          z0 += 400;
-          scene.add(plane);
+          z0 += -400;
+          plane.name = `layer_${i}_plane`;
           planes.push(plane);
         }
       };
+
       setupPlanes();
-      //gpu picking
-      const pickingScene = new THREE.Scene();
-      const pickingRenderer = new THREE.WebGLRenderTarget(
-        canvas.clientWidth,
-        canvas.clientHeight
-      );
-      pickingScene.background = new THREE.Color(0xffffff);
-      /**
-       *
-       * @param {THREE.Geometry} geometry
-       * @param {THREE.Color } color
-       */
-      function applyVertexColors(geometry, color) {
-        const positions = geometry.getAttribute('position');
-        const colors = [];
-        for (let i = 0; i < positions.count; i++) {
-          colors.push(color.r, color.g, color.b);
-        }
-        geometry.setAttribute(
-          'color',
-          new THREE.Float32BufferAttribute(colors, 3)
-        );
-      }
-      const pickingMaterial = new THREE.MeshBasicMaterial({
-        vertexColors: true,
-      });
-      const setupPickingObjects = () => {
-        for (let i = 0; i < spheres.length; i++) {
-          const sphere = spheres[i];
-          //get geometry of the sphere
-          const geometry = sphere.geometry.clone();
-          const color = new THREE.Color();
-          applyVertexColors(geometry, color.setHex(i));
-          const mesh = new THREE.Mesh(geometry, pickingMaterial);
-          mesh.position.set(
-            sphere.position.x,
-            sphere.position.y,
-            sphere.position.z
-          );
-          pickingScene.add(mesh);
-        }
-        for (let i = spheres.length; i < planes.length + spheres.length; i++) {
-          const plane = planes[i - spheres.length];
-          //get geometry of the plane
-          const geometry = plane.geometry.clone();
-          const color = new THREE.Color();
-          applyVertexColors(geometry, color.setHex(i));
-          const mesh = new THREE.Mesh(geometry, pickingMaterial);
-          mesh.position.set(
-            plane.position.x,
-            plane.position.y,
-            plane.position.z
-          );
-          //set the same rotation as plane
-          mesh.rotation.set(
-            plane.rotation.x,
-            plane.rotation.y,
-            plane.rotation.z
-          );
-          pickingScene.add(mesh);
-        }
-      };
-      setupPickingObjects();
-      //get pointer coordinates in canvas
-      let pointer = { x: -1, y: -1 };
-      //setup the mouse events
-      canvas.addEventListener('mousemove', (e) => {
-        pointer = { x: e.offsetX, y: e.offsetY };
-      });
-      let selectedLayer = null;
-      let render2d = false;
-      canvas.addEventListener('mousedown', (e) => {
-        if (!render2d) {
-          render2d = !render2d;
-          const id = pick();
-          const plane = planes[id - spheres.length];
-          if (plane) {
-            plane.material.color.setHex(0xffff00);
-            selectedLayer = plane;
 
-            camera.position.y = selectedLayer.position.y + 400;
-            camera.position.z = 0;
-            camera.position.x = 0;
-            camera.lookAt(new THREE.Vector3(0, selectedLayer.position.y, 0));
-            const layerId =
-              searchViewLayoutData.visData.length -
-              1 -
-              (selectedLayer.position.y + 10) / 400;
-            scene.traverse((child) => {
-              console.log(selectedLayer.position.y + 10);
-              if (child.position.y !== selectedLayer.position.y + 10) {
-                if (child.type === spheres[0].type) {
-                  child.visible = false;
-                }
-              }
-              if (
-                child.name.substring(0, 4) === 'link' &&
-                child.name !== `link-${layerId}`
-              ) {
-                child.visible = false;
-              }
-              if(child.name==="link-up"){
-                child.visible = false;
-              }
-            });
-          }
-        }
-      });
-      canvas.addEventListener('mouseup', (e) => {
-        if (selectedLayer) {
-          // selectedLayer.material.color.setHex(0x0055ff);
-          // selectedLayer = null;
-        }
-      });
-      const pick = () => {
-        if (pointer.x < 0 || pointer.y < 0) return -1;
-        const pixelRatio = renderer.getPixelRatio();
-        // set the view offset to represent just a single pixel under the mouse
-        camera.setViewOffset(
-          canvas.clientWidth,
-          canvas.clientHeight,
-          pointer.x * pixelRatio,
-          pointer.y * pixelRatio,
-          1,
-          1
-        );
-        // render the scene
-        renderer.setRenderTarget(pickingRenderer);
-        renderer.render(pickingScene, camera);
-        renderer.setRenderTarget(null);
-        //clear the view offset so the camera returns to normal
-        camera.clearViewOffset();
-        // get the pixel color under the mouse
-        const pixelBuffer = new Uint8Array(4);
-        renderer.readRenderTargetPixels(
-          pickingRenderer,
-          0,
-          0,
-          1,
-          1,
-          pixelBuffer
-        );
-        const id =
-          (pixelBuffer[0] << 16) | (pixelBuffer[1] << 8) | pixelBuffer[2];
-        return id;
-      };
-
-      const setupLinks = async () => {
+      let lines = [];
+      const setupLines = () => {
         let z0 = 0;
-        let lines = [];
         for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
           const { links } = searchViewLayoutData.visData[i];
           for (let j = 0; j < links.length; j++) {
@@ -371,7 +232,7 @@ export default class BaseView {
             });
             //create a new line
             const line = new THREE.Line(lineGeometry, material);
-            line.name = `link-${i}`;
+            line.name = `layer_${i}_link_${j}`;
             if (opacity > 0) lines.push(line);
           }
           if (i > 0) {
@@ -385,33 +246,17 @@ export default class BaseView {
               color: new THREE.Color(0xeeee00),
             });
             const line = new THREE.Line(lineGeometry, material);
-            line.name=`link-up`
+            line.name = `link_up`;
             lines.push(line);
           }
-          z0 += 400;
-        }
-
-        const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-
-        for (let i = 0; i < lines.length; i++) {
-          scene.add(lines[i]);
-          // await delay(500);
+          z0 += -400;
         }
       };
-      setupLinks();
+      setupLines();
 
-      //adjust the display 响应式画布会用到，暂时不用
-      function adjustDisplay() {
-        renderer.setSize(
-          renderer.domElement.clientWidth,
-          renderer.domElement.clientHeight
-        );
-        camera.left = canvas.clientWidth * -1;
-        camera.right = canvas.clientWidth;
-        camera.top = canvas.clientHeight;
-        camera.bottom = canvas.clientHeight * -1;
-        camera.updateProjectionMatrix();
-      }
+      scene.add(...spheres);
+      scene.add(...planes);
+      scene.add(...lines);
 
       const composer = new EffectComposer(renderer);
       const setupPostProcessing = () => {
@@ -427,39 +272,233 @@ export default class BaseView {
           0.7,
           0.5
         );
-        // bloomPass.threshold = 0.7;
         composer.addPass(bloomPass);
-        // composer.addPass(bloomPass);
       };
       setupPostProcessing();
 
+      //pick
+      //gpu picking
+      const pickingScene = new THREE.Scene();
+      const pickingRenderer = new THREE.WebGLRenderTarget(
+        canvas.clientWidth,
+        canvas.clientHeight
+      );
+      pickingScene.background = new THREE.Color(0xffffff);
+
+      let pickingObjects = [];
+      const pickingMaterial = new THREE.MeshBasicMaterial({
+        vertexColors: true,
+      });
+      const setupPickingObjects = () => {
+        for (let i = 0; i < spheres.length; i++) {
+          const sphere = spheres[i];
+          //get geometry of the sphere
+          const geometry = sphere.geometry.clone();
+          const color = new THREE.Color();
+          applyVertexColors(geometry, color.setHex(i));
+          const mesh = new THREE.Mesh(geometry, pickingMaterial);
+          mesh.position.set(
+            sphere.position.x,
+            sphere.position.y,
+            sphere.position.z
+          );
+          mesh.name = sphere.name;
+          pickingObjects.push(mesh);
+          pickingScene.add(mesh);
+        }
+        for (let i = spheres.length; i < planes.length + spheres.length; i++) {
+          const plane = planes[i - spheres.length];
+          //get geometry of the plane
+          const geometry = plane.geometry.clone();
+          const color = new THREE.Color();
+          applyVertexColors(geometry, color.setHex(i));
+          const mesh = new THREE.Mesh(geometry, pickingMaterial);
+          mesh.position.set(
+            plane.position.x,
+            plane.position.y,
+            plane.position.z
+          );
+          //set the same rotation as plane
+          mesh.rotation.set(
+            plane.rotation.x,
+            plane.rotation.y,
+            plane.rotation.z
+          );
+          mesh.name = plane.name;
+          pickingObjects.push(mesh);
+          pickingScene.add(mesh);
+        }
+        for (
+          let i = planes.length + spheres.length;
+          i < planes.length + spheres.length + lines.length;
+          i++
+        ) {
+          const line = lines[i - planes.length - spheres.length];
+          //get geometry of the plane
+          const geometry = line.geometry.clone();
+          const color = new THREE.Color();
+          applyVertexColors(geometry, color.setHex(i));
+          const mesh = new THREE.Mesh(geometry, pickingMaterial);
+          mesh.name = line.name;
+          pickingObjects.push(mesh);
+          pickingScene.add(mesh);
+        }
+      };
+      setupPickingObjects();
+      //get pointer coordinates in canvas
+      let pointer = { x: -1, y: -1 };
+      let lastObject = null,
+        currentObject = null;
+
+      //setup the mouse events
+      canvas.addEventListener('mousemove', (e) => {
+        pointer = { x: e.offsetX, y: e.offsetY };
+      });
+      canvas.addEventListener('click', () => {
+        if (currentObject && currentObject.name.includes('')) {
+        }
+      });
+
+      const pick = () => {
+        if (pointer.x < 0 || pointer.y < 0) return -1;
+        const pixelRatio = renderer.getPixelRatio();
+        // set the view offset to represent just a single pixel under the mouse
+        camera.setViewOffset(
+          canvas.clientWidth,
+          canvas.clientHeight,
+          pointer.x * pixelRatio,
+          pointer.y * pixelRatio,
+          1,
+          1
+        );
+        // render the scene
+        renderer.setRenderTarget(pickingRenderer);
+        renderer.render(pickingScene, camera);
+        renderer.setRenderTarget(null);
+        //clear the view offset so the camera returns to normal
+        camera.clearViewOffset();
+        // get the pixel color under the mouse
+        const pixelBuffer = new Uint8Array(4);
+        renderer.readRenderTargetPixels(
+          pickingRenderer,
+          0,
+          0,
+          1,
+          1,
+          pixelBuffer
+        );
+        const id =
+          (pixelBuffer[0] << 16) | (pixelBuffer[1] << 8) | pixelBuffer[2];
+        return id;
+      };
+
+      const handlePick = () => {
+        const id = pick();
+        const sphere = spheres[id];
+        const plane = planes[id - spheres.length];
+        const line = lines[id - spheres.length - planes.length];
+
+        if (sphere) {
+          sphere.material.emissive.setHex(0xffffff);
+        } else if (plane) {
+          plane.material.color.setHex(0xffffff);
+        } else if (line) {
+          // line.material.color.multiplyScalar(1.5);
+        }
+        return sphere || plane || line;
+      };
+
+      let lastCam = null;
+      //create a return button
+      const returnButton = document.createElement('button');
+      let render3dView = true;
+      returnButton.innerText = 'return to 3d view';
+      returnButton.onclick = () => {
+        lastObject = null;
+        render3dView = true;
+        scene.traverse((child) => {
+          child.visible = true;
+        });
+        pickingScene.traverse((child) => {
+          child.visible = true;
+        });
+      };
+
+      canvas.addEventListener('click', () => {
+        if (
+          render3dView &&
+          currentObject &&
+          currentObject.name.includes('plane')
+        ) {
+          render3dView = false;
+          //get layer id
+          const layerId = currentObject.name.split('_')[1];
+
+          pickingObjects.forEach((child) => {
+            if (!child.name.includes(`layer_${layerId}`)) {
+              child.visible = false;
+            }
+          });
+
+          spheres.forEach((sphere) => {
+            if (!sphere.name.includes(`layer_${layerId}`)) {
+              sphere.visible = false;
+            }
+          });
+          planes.forEach((plane) => {
+            // if (!plane.name.includes(`layer_${layerId}`)) {
+            plane.visible = false;
+            // }
+          });
+          lines.forEach((line) => {
+            if (!line.name.includes(`layer_${layerId}`)) {
+              line.visible = false;
+            }
+          });
+        }
+      });
+
       //setup the controls
       const controls = new OrbitControls(camera, renderer.domElement);
-      let lastObject = null,
-        then = 0;
+      let then = 0;
+      dom.appendChild(returnButton);
+      dom.appendChild(infoPanel);
 
       const render = (now) => {
+        if (render3dView) {
+          //disable the button
+          returnButton.disabled = true;
+        } else {
+          //enable the button
+          returnButton.disabled = false;
+        }
         now *= 0.001;
         const deltaTime = now - then;
         then = now;
         //update the controls
         controls.update();
 
-        //pick
-        const id = pick();
-        const object = spheres[id];
-        if (object) {
-          //change emissive color
-          object.material.emissive.setHex(0xffccd1);
+        currentObject = handlePick();
+        if (currentObject && currentObject.hnswData) {
+          console.log(currentObject.hnswData);
+          infoPanel.innerHTML = /*html*/ `
+          <div><b>id:</b> ${currentObject.hnswData.id}</div>
+          <div><b>type:</b> ${currentObject.hnswData.type}</div>
+          <div><b>distance:</b> ${currentObject.hnswData.dist}</div>
+          `;
         }
-        if (lastObject !== object && lastObject) {
-          lastObject.material.emissive.setHex(0x000000);
+        if (currentObject !== lastObject) {
+          if (lastObject && lastObject.name.includes('node')) {
+            lastObject.material.emissive.setHex(0x000000);
+          } else if (lastObject && lastObject.name.includes('plane')) {
+            lastObject.material.color.setHex(0x0055ff);
+          }
         }
-        lastObject = object;
+        lastObject = currentObject;
 
         //render the scene
-        // renderer.render(scene, camera);
         composer.render(deltaTime);
+
         //request the next frame
         requestAnimationFrame(render);
       };
@@ -521,3 +560,16 @@ const initCanvas = (dom, clientWidth, clientHeight, canvasScale) => {
 
   return canvas.node();
 };
+/**
+ *
+ * @param {THREE.Geometry} geometry
+ * @param {THREE.Color } color
+ */
+function applyVertexColors(geometry, color) {
+  const positions = geometry.getAttribute('position');
+  const colors = [];
+  for (let i = 0; i < positions.count; i++) {
+    colors.push(color.r, color.g, color.b);
+  }
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+}

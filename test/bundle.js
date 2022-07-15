@@ -35913,11 +35913,14 @@ ${indentData}`);
         const canvas = document.createElement("canvas");
         canvas.width = this.clientWidth;
         canvas.height = this.clientHeight;
-        document.body.appendChild(canvas);
+        dom.appendChild(canvas);
         const searchViewLayoutData = yield this.searchViewHandler(searchRes);
+        console.log(searchViewLayoutData);
+        const infoPanel = document.createElement("div");
+        infoPanel.style.color = "#fff";
         const setup3d = () => {
           const scene = new Scene();
-          const camera = new OrthographicCamera(canvas.clientWidth, canvas.clientWidth * -1, canvas.clientHeight, canvas.clientHeight * -1, -4e3, 4e3);
+          let camera = new OrthographicCamera(canvas.clientWidth, canvas.clientWidth * -1, canvas.clientHeight, canvas.clientHeight * -1, -4e3, 4e3);
           camera.position.z = -10;
           camera.position.y = 1;
           camera.lookAt(scene.position);
@@ -35931,9 +35934,10 @@ ${indentData}`);
           };
           setupLights();
           let spheres = [];
-          let entryPts = [], finePts = [];
+          let entryPts = [];
+          let finePts = [];
           let maxX = 0, maxY = 0, minX = 0, minY = 0;
-          const setupNodes = () => {
+          const setupSpheres = () => {
             let z0 = 0;
             for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
               const { entryIds, fineIds, links, nodes } = searchViewLayoutData.visData[i];
@@ -35961,132 +35965,43 @@ ${indentData}`);
                   flatShading: true
                 });
                 const sphere = new Mesh(geometry, material);
+                sphere.hnswData = node;
                 sphere.position.set(x3, z0, y4);
                 maxX = Math.max(maxX, x3);
                 maxY = Math.max(maxY, y4);
                 minX = Math.min(minX, x3);
                 minY = Math.min(minY, y4);
                 spheres.push(sphere);
-                scene.add(sphere);
+                sphere.name = `layer_${i}_node_${j}`;
               }
-              z0 += 400;
+              z0 += -400;
             }
           };
-          setupNodes();
+          setupSpheres();
           let planes = [];
           const setupPlanes = () => {
-            console.log(maxX, maxY, minX, minY);
-            let z0 = -10;
+            let z0 = -30;
             for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
               const planeGeometry = new PlaneGeometry(maxX - minX, maxY - minY, 1, 1);
               const planeMaterial = new MeshBasicMaterial({
                 color: 22015,
                 side: DoubleSide,
                 opacity: 0.2,
-                transparent: true
+                transparent: true,
+                depthWrite: false
               });
               const plane = new Mesh(planeGeometry, planeMaterial);
-              plane.position.set(0, z0, 0);
+              plane.position.set(maxX / 2 + minX / 2, z0, maxY / 2 + minY / 2);
               plane.rotateX(Math.PI / 2);
-              z0 += 400;
-              scene.add(plane);
+              z0 += -400;
+              plane.name = `layer_${i}_plane`;
               planes.push(plane);
             }
           };
           setupPlanes();
-          const pickingScene = new Scene();
-          const pickingRenderer = new WebGLRenderTarget(canvas.clientWidth, canvas.clientHeight);
-          pickingScene.background = new Color2(16777215);
-          function applyVertexColors(geometry, color2) {
-            const positions = geometry.getAttribute("position");
-            const colors = [];
-            for (let i = 0; i < positions.count; i++) {
-              colors.push(color2.r, color2.g, color2.b);
-            }
-            geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
-          }
-          const pickingMaterial = new MeshBasicMaterial({
-            vertexColors: true
-          });
-          const setupPickingObjects = () => {
-            for (let i = 0; i < spheres.length; i++) {
-              const sphere = spheres[i];
-              const geometry = sphere.geometry.clone();
-              const color2 = new Color2();
-              applyVertexColors(geometry, color2.setHex(i));
-              const mesh = new Mesh(geometry, pickingMaterial);
-              mesh.position.set(sphere.position.x, sphere.position.y, sphere.position.z);
-              pickingScene.add(mesh);
-            }
-            for (let i = spheres.length; i < planes.length + spheres.length; i++) {
-              const plane = planes[i - spheres.length];
-              const geometry = plane.geometry.clone();
-              const color2 = new Color2();
-              applyVertexColors(geometry, color2.setHex(i));
-              const mesh = new Mesh(geometry, pickingMaterial);
-              mesh.position.set(plane.position.x, plane.position.y, plane.position.z);
-              mesh.rotation.set(plane.rotation.x, plane.rotation.y, plane.rotation.z);
-              pickingScene.add(mesh);
-            }
-          };
-          setupPickingObjects();
-          let pointer = { x: -1, y: -1 };
-          canvas.addEventListener("mousemove", (e) => {
-            pointer = { x: e.offsetX, y: e.offsetY };
-          });
-          let selectedLayer = null;
-          let render2d = false;
-          canvas.addEventListener("mousedown", (e) => {
-            if (!render2d) {
-              render2d = !render2d;
-              const id2 = pick();
-              const plane = planes[id2 - spheres.length];
-              if (plane) {
-                plane.material.color.setHex(16776960);
-                selectedLayer = plane;
-                camera.position.y = selectedLayer.position.y + 400;
-                camera.position.z = 0;
-                camera.position.x = 0;
-                camera.lookAt(new Vector3(0, selectedLayer.position.y, 0));
-                const layerId = searchViewLayoutData.visData.length - 1 - (selectedLayer.position.y + 10) / 400;
-                scene.traverse((child) => {
-                  console.log(selectedLayer.position.y + 10);
-                  if (child.position.y !== selectedLayer.position.y + 10) {
-                    if (child.type === spheres[0].type) {
-                      child.visible = false;
-                    }
-                  }
-                  if (child.name.substring(0, 4) === "link" && child.name !== `link-${layerId}`) {
-                    child.visible = false;
-                  }
-                  if (child.name === "link-up") {
-                    child.visible = false;
-                  }
-                });
-              }
-            }
-          });
-          canvas.addEventListener("mouseup", (e) => {
-            if (selectedLayer) {
-            }
-          });
-          const pick = () => {
-            if (pointer.x < 0 || pointer.y < 0)
-              return -1;
-            const pixelRatio = renderer.getPixelRatio();
-            camera.setViewOffset(canvas.clientWidth, canvas.clientHeight, pointer.x * pixelRatio, pointer.y * pixelRatio, 1, 1);
-            renderer.setRenderTarget(pickingRenderer);
-            renderer.render(pickingScene, camera);
-            renderer.setRenderTarget(null);
-            camera.clearViewOffset();
-            const pixelBuffer = new Uint8Array(4);
-            renderer.readRenderTargetPixels(pickingRenderer, 0, 0, 1, 1, pixelBuffer);
-            const id2 = pixelBuffer[0] << 16 | pixelBuffer[1] << 8 | pixelBuffer[2];
-            return id2;
-          };
-          const setupLinks = () => __async(this, null, function* () {
+          let lines = [];
+          const setupLines = () => {
             let z0 = 0;
-            let lines = [];
             for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
               const { links } = searchViewLayoutData.visData[i];
               for (let j = 0; j < links.length; j++) {
@@ -36115,7 +36030,7 @@ ${indentData}`);
                   transparent: true
                 });
                 const line = new Line(lineGeometry, material);
-                line.name = `link-${i}`;
+                line.name = `layer_${i}_link_${j}`;
                 if (opacity > 0)
                   lines.push(line);
               }
@@ -36130,25 +36045,16 @@ ${indentData}`);
                   color: new Color2(15658496)
                 });
                 const line = new Line(lineGeometry, material);
-                line.name = `link-up`;
+                line.name = `link_up`;
                 lines.push(line);
               }
-              z0 += 400;
+              z0 += -400;
             }
-            const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-            for (let i = 0; i < lines.length; i++) {
-              scene.add(lines[i]);
-            }
-          });
-          setupLinks();
-          function adjustDisplay() {
-            renderer.setSize(renderer.domElement.clientWidth, renderer.domElement.clientHeight);
-            camera.left = canvas.clientWidth * -1;
-            camera.right = canvas.clientWidth;
-            camera.top = canvas.clientHeight;
-            camera.bottom = canvas.clientHeight * -1;
-            camera.updateProjectionMatrix();
-          }
+          };
+          setupLines();
+          scene.add(...spheres);
+          scene.add(...planes);
+          scene.add(...lines);
           const composer = new EffectComposer(renderer);
           const setupPostProcessing = () => {
             const renderPass = new RenderPass(scene, camera);
@@ -36158,22 +36064,154 @@ ${indentData}`);
             composer.addPass(bloomPass);
           };
           setupPostProcessing();
+          const pickingScene = new Scene();
+          const pickingRenderer = new WebGLRenderTarget(canvas.clientWidth, canvas.clientHeight);
+          pickingScene.background = new Color2(16777215);
+          let pickingObjects = [];
+          const pickingMaterial = new MeshBasicMaterial({
+            vertexColors: true
+          });
+          const setupPickingObjects = () => {
+            for (let i = 0; i < spheres.length; i++) {
+              const sphere = spheres[i];
+              const geometry = sphere.geometry.clone();
+              const color2 = new Color2();
+              applyVertexColors(geometry, color2.setHex(i));
+              const mesh = new Mesh(geometry, pickingMaterial);
+              mesh.position.set(sphere.position.x, sphere.position.y, sphere.position.z);
+              mesh.name = sphere.name;
+              pickingObjects.push(mesh);
+              pickingScene.add(mesh);
+            }
+            for (let i = spheres.length; i < planes.length + spheres.length; i++) {
+              const plane = planes[i - spheres.length];
+              const geometry = plane.geometry.clone();
+              const color2 = new Color2();
+              applyVertexColors(geometry, color2.setHex(i));
+              const mesh = new Mesh(geometry, pickingMaterial);
+              mesh.position.set(plane.position.x, plane.position.y, plane.position.z);
+              mesh.rotation.set(plane.rotation.x, plane.rotation.y, plane.rotation.z);
+              mesh.name = plane.name;
+              pickingObjects.push(mesh);
+              pickingScene.add(mesh);
+            }
+            for (let i = planes.length + spheres.length; i < planes.length + spheres.length + lines.length; i++) {
+              const line = lines[i - planes.length - spheres.length];
+              const geometry = line.geometry.clone();
+              const color2 = new Color2();
+              applyVertexColors(geometry, color2.setHex(i));
+              const mesh = new Mesh(geometry, pickingMaterial);
+              mesh.name = line.name;
+              pickingObjects.push(mesh);
+              pickingScene.add(mesh);
+            }
+          };
+          setupPickingObjects();
+          let pointer = { x: -1, y: -1 };
+          let lastObject = null, currentObject = null;
+          canvas.addEventListener("mousemove", (e) => {
+            pointer = { x: e.offsetX, y: e.offsetY };
+          });
+          canvas.addEventListener("click", () => {
+            if (currentObject && currentObject.name.includes("")) {
+            }
+          });
+          const pick = () => {
+            if (pointer.x < 0 || pointer.y < 0)
+              return -1;
+            const pixelRatio = renderer.getPixelRatio();
+            camera.setViewOffset(canvas.clientWidth, canvas.clientHeight, pointer.x * pixelRatio, pointer.y * pixelRatio, 1, 1);
+            renderer.setRenderTarget(pickingRenderer);
+            renderer.render(pickingScene, camera);
+            renderer.setRenderTarget(null);
+            camera.clearViewOffset();
+            const pixelBuffer = new Uint8Array(4);
+            renderer.readRenderTargetPixels(pickingRenderer, 0, 0, 1, 1, pixelBuffer);
+            const id2 = pixelBuffer[0] << 16 | pixelBuffer[1] << 8 | pixelBuffer[2];
+            return id2;
+          };
+          const handlePick = () => {
+            const id2 = pick();
+            const sphere = spheres[id2];
+            const plane = planes[id2 - spheres.length];
+            const line = lines[id2 - spheres.length - planes.length];
+            if (sphere) {
+              sphere.material.emissive.setHex(16777215);
+            } else if (plane) {
+              plane.material.color.setHex(16777215);
+            } else if (line) {
+            }
+            return sphere || plane || line;
+          };
+          let lastCam = null;
+          const returnButton = document.createElement("button");
+          let render3dView = true;
+          returnButton.innerText = "return to 3d view";
+          returnButton.onclick = () => {
+            lastObject = null;
+            render3dView = true;
+            scene.traverse((child) => {
+              child.visible = true;
+            });
+            pickingScene.traverse((child) => {
+              child.visible = true;
+            });
+          };
+          canvas.addEventListener("click", () => {
+            if (render3dView && currentObject && currentObject.name.includes("plane")) {
+              render3dView = false;
+              const layerId = currentObject.name.split("_")[1];
+              pickingObjects.forEach((child) => {
+                if (!child.name.includes(`layer_${layerId}`)) {
+                  child.visible = false;
+                }
+              });
+              spheres.forEach((sphere) => {
+                if (!sphere.name.includes(`layer_${layerId}`)) {
+                  sphere.visible = false;
+                }
+              });
+              planes.forEach((plane) => {
+                plane.visible = false;
+              });
+              lines.forEach((line) => {
+                if (!line.name.includes(`layer_${layerId}`)) {
+                  line.visible = false;
+                }
+              });
+            }
+          });
           const controls = new OrbitControls(camera, renderer.domElement);
-          let lastObject = null, then = 0;
+          let then = 0;
+          dom.appendChild(returnButton);
+          dom.appendChild(infoPanel);
           const render = (now3) => {
+            if (render3dView) {
+              returnButton.disabled = true;
+            } else {
+              returnButton.disabled = false;
+            }
             now3 *= 1e-3;
             const deltaTime = now3 - then;
             then = now3;
             controls.update();
-            const id2 = pick();
-            const object = spheres[id2];
-            if (object) {
-              object.material.emissive.setHex(16764113);
+            currentObject = handlePick();
+            if (currentObject && currentObject.hnswData) {
+              console.log(currentObject.hnswData);
+              infoPanel.innerHTML = `
+          <div><b>id:</b> ${currentObject.hnswData.id}</div>
+          <div><b>type:</b> ${currentObject.hnswData.type}</div>
+          <div><b>distance:</b> ${currentObject.hnswData.dist}</div>
+          `;
             }
-            if (lastObject !== object && lastObject) {
-              lastObject.material.emissive.setHex(0);
+            if (currentObject !== lastObject) {
+              if (lastObject && lastObject.name.includes("node")) {
+                lastObject.material.emissive.setHex(0);
+              } else if (lastObject && lastObject.name.includes("plane")) {
+                lastObject.material.color.setHex(22015);
+              }
             }
-            lastObject = object;
+            lastObject = currentObject;
             composer.render(deltaTime);
             requestAnimationFrame(render);
           };
@@ -36208,6 +36246,14 @@ ${indentData}`);
     const canvas = domD3.append("canvas").attr("width", clientWidth).attr("height", clientHeight);
     return canvas.node();
   };
+  function applyVertexColors(geometry, color2) {
+    const positions = geometry.getAttribute("position");
+    const colors = [];
+    for (let i = 0; i < positions.count; i++) {
+      colors.push(color2.r, color2.g, color2.b);
+    }
+    geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
+  }
 
   // federjs/FederView/HnswView/layout/transformHandler.js
   var transformHandler = (nodes, { levelCount, width, height, padding, xBias = 0.65, yBias = 0.4, yOver = 0.1 }) => {
