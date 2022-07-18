@@ -600,7 +600,7 @@
         return new SparseMatrix(rows, cols, vals, dims);
       }
       exports.transpose = transpose;
-      function identity4(size) {
+      function identity5(size) {
         var _a2 = __read(size, 1), rows = _a2[0];
         var matrix = new SparseMatrix([], [], [], size);
         for (var i = 0; i < rows; i++) {
@@ -608,7 +608,7 @@
         }
         return matrix;
       }
-      exports.identity = identity4;
+      exports.identity = identity5;
       function pairwiseMultiply(a2, b) {
         return elementWise(a2, b, function(x3, y4) {
           return x3 * y4;
@@ -4385,7 +4385,7 @@ ${indentData}`);
           let ni = Math.min(m2 + 1, n);
           let s = new Float64Array(ni);
           let U = new Matrix(m2, nu);
-          let V = new Matrix(n, n);
+          let V2 = new Matrix(n, n);
           let e = new Float64Array(n);
           let work = new Float64Array(m2);
           let si = new Float64Array(ni);
@@ -4462,7 +4462,7 @@ ${indentData}`);
               }
               if (wantv) {
                 for (let i = k + 1; i < n; i++) {
-                  V.set(i, k, e[i]);
+                  V2.set(i, k, e[i]);
                 }
               }
             }
@@ -4518,18 +4518,18 @@ ${indentData}`);
                 for (let j = k + 1; j < n; j++) {
                   let t = 0;
                   for (let i = k + 1; i < n; i++) {
-                    t += V.get(i, k) * V.get(i, j);
+                    t += V2.get(i, k) * V2.get(i, j);
                   }
-                  t = -t / V.get(k + 1, k);
+                  t = -t / V2.get(k + 1, k);
                   for (let i = k + 1; i < n; i++) {
-                    V.set(i, j, V.get(i, j) + t * V.get(i, k));
+                    V2.set(i, j, V2.get(i, j) + t * V2.get(i, k));
                   }
                 }
               }
               for (let i = 0; i < n; i++) {
-                V.set(i, k, 0);
+                V2.set(i, k, 0);
               }
-              V.set(k, k, 1);
+              V2.set(k, k, 1);
             }
           }
           let pp = p - 1;
@@ -4585,9 +4585,9 @@ ${indentData}`);
                   }
                   if (wantv) {
                     for (let i = 0; i < n; i++) {
-                      t = cs * V.get(i, j) + sn * V.get(i, p - 1);
-                      V.set(i, p - 1, -sn * V.get(i, j) + cs * V.get(i, p - 1));
-                      V.set(i, j, t);
+                      t = cs * V2.get(i, j) + sn * V2.get(i, p - 1);
+                      V2.set(i, p - 1, -sn * V2.get(i, j) + cs * V2.get(i, p - 1));
+                      V2.set(i, j, t);
                     }
                   }
                 }
@@ -4648,9 +4648,9 @@ ${indentData}`);
                   s[j + 1] = cs * s[j + 1];
                   if (wantv) {
                     for (let i = 0; i < n; i++) {
-                      t = cs * V.get(i, j) + sn * V.get(i, j + 1);
-                      V.set(i, j + 1, -sn * V.get(i, j) + cs * V.get(i, j + 1));
-                      V.set(i, j, t);
+                      t = cs * V2.get(i, j) + sn * V2.get(i, j + 1);
+                      V2.set(i, j + 1, -sn * V2.get(i, j) + cs * V2.get(i, j + 1));
+                      V2.set(i, j, t);
                     }
                   }
                   t = hypotenuse(f, g);
@@ -4679,7 +4679,7 @@ ${indentData}`);
                   s[k] = s[k] < 0 ? -s[k] : 0;
                   if (wantv) {
                     for (let i = 0; i <= pp; i++) {
-                      V.set(i, k, -V.get(i, k));
+                      V2.set(i, k, -V2.get(i, k));
                     }
                   }
                 }
@@ -4692,9 +4692,9 @@ ${indentData}`);
                   s[k + 1] = t;
                   if (wantv && k < n - 1) {
                     for (let i = 0; i < n; i++) {
-                      t = V.get(i, k + 1);
-                      V.set(i, k + 1, V.get(i, k));
-                      V.set(i, k, t);
+                      t = V2.get(i, k + 1);
+                      V2.set(i, k + 1, V2.get(i, k));
+                      V2.set(i, k, t);
                     }
                   }
                   if (wantu && k < m2 - 1) {
@@ -4712,15 +4712,15 @@ ${indentData}`);
             }
           }
           if (swapped) {
-            let tmp2 = V;
-            V = U;
+            let tmp2 = V2;
+            V2 = U;
             U = tmp2;
           }
           this.m = m2;
           this.n = n;
           this.s = s;
           this.U = U;
-          this.V = V;
+          this.V = V2;
         }
         solve(value) {
           let Y2 = value;
@@ -4735,9 +4735,9 @@ ${indentData}`);
             }
           }
           let U = this.U;
-          let V = this.rightSingularVectors;
-          let VL = V.mmul(Ls);
-          let vrows = V.rows;
+          let V2 = this.rightSingularVectors;
+          let VL = V2.mmul(Ls);
+          let vrows = V2.rows;
           let urows = U.rows;
           let VLU = Matrix.zeros(vrows, urows);
           for (let i = 0; i < vrows; i++) {
@@ -4755,15 +4755,15 @@ ${indentData}`);
           return this.solve(Matrix.diag(value));
         }
         inverse() {
-          let V = this.V;
+          let V2 = this.V;
           let e = this.threshold;
-          let vrows = V.rows;
-          let vcols = V.columns;
+          let vrows = V2.rows;
+          let vcols = V2.columns;
           let X2 = new Matrix(vrows, this.s.length);
           for (let i = 0; i < vrows; i++) {
             for (let j = 0; j < vcols; j++) {
               if (Math.abs(this.s[j]) > e) {
-                X2.set(i, j, V.get(i, j) / this.s[j]);
+                X2.set(i, j, V2.get(i, j) / this.s[j]);
               }
             }
           }
@@ -4905,7 +4905,7 @@ ${indentData}`);
         }
         let svdSolution = new SingularValueDecomposition(matrix, { autoTranspose: true });
         let U = svdSolution.leftSingularVectors;
-        let V = svdSolution.rightSingularVectors;
+        let V2 = svdSolution.rightSingularVectors;
         let s = svdSolution.diagonal;
         for (let i = 0; i < s.length; i++) {
           if (Math.abs(s[i]) > threshold) {
@@ -4914,7 +4914,7 @@ ${indentData}`);
             s[i] = 0;
           }
         }
-        return V.mmul(Matrix.diag(s).mmul(U.transpose()));
+        return V2.mmul(Matrix.diag(s).mmul(U.transpose()));
       }
       function covariance(xMatrix, yMatrix = xMatrix, options = {}) {
         xMatrix = new Matrix(xMatrix);
@@ -4991,7 +4991,7 @@ ${indentData}`);
             throw new Error("Matrix must be non-empty");
           }
           let n = matrix.columns;
-          let V = new Matrix(n, n);
+          let V2 = new Matrix(n, n);
           let d = new Float64Array(n);
           let e = new Float64Array(n);
           let value = matrix;
@@ -5005,11 +5005,11 @@ ${indentData}`);
           if (isSymmetric) {
             for (i = 0; i < n; i++) {
               for (j = 0; j < n; j++) {
-                V.set(i, j, value.get(i, j));
+                V2.set(i, j, value.get(i, j));
               }
             }
-            tred2(n, e, d, V);
-            tql2(n, e, d, V);
+            tred2(n, e, d, V2);
+            tql2(n, e, d, V2);
           } else {
             let H = new Matrix(n, n);
             let ort = new Float64Array(n);
@@ -5018,13 +5018,13 @@ ${indentData}`);
                 H.set(i, j, value.get(i, j));
               }
             }
-            orthes(n, H, ort, V);
-            hqr2(n, e, d, V, H);
+            orthes(n, H, ort, V2);
+            hqr2(n, e, d, V2, H);
           }
           this.n = n;
           this.e = e;
           this.d = d;
-          this.V = V;
+          this.V = V2;
         }
         get realEigenvalues() {
           return Array.from(this.d);
@@ -5055,10 +5055,10 @@ ${indentData}`);
           return X2;
         }
       };
-      function tred2(n, e, d, V) {
+      function tred2(n, e, d, V2) {
         let f, g, h, i, j, k, hh, scale2;
         for (j = 0; j < n; j++) {
-          d[j] = V.get(n - 1, j);
+          d[j] = V2.get(n - 1, j);
         }
         for (i = n - 1; i > 0; i--) {
           scale2 = 0;
@@ -5069,9 +5069,9 @@ ${indentData}`);
           if (scale2 === 0) {
             e[i] = d[i - 1];
             for (j = 0; j < i; j++) {
-              d[j] = V.get(i - 1, j);
-              V.set(i, j, 0);
-              V.set(j, i, 0);
+              d[j] = V2.get(i - 1, j);
+              V2.set(i, j, 0);
+              V2.set(j, i, 0);
             }
           } else {
             for (k = 0; k < i; k++) {
@@ -5091,11 +5091,11 @@ ${indentData}`);
             }
             for (j = 0; j < i; j++) {
               f = d[j];
-              V.set(j, i, f);
-              g = e[j] + V.get(j, j) * f;
+              V2.set(j, i, f);
+              g = e[j] + V2.get(j, j) * f;
               for (k = j + 1; k <= i - 1; k++) {
-                g += V.get(k, j) * d[k];
-                e[k] += V.get(k, j) * f;
+                g += V2.get(k, j) * d[k];
+                e[k] += V2.get(k, j) * f;
               }
               e[j] = g;
             }
@@ -5112,44 +5112,44 @@ ${indentData}`);
               f = d[j];
               g = e[j];
               for (k = j; k <= i - 1; k++) {
-                V.set(k, j, V.get(k, j) - (f * e[k] + g * d[k]));
+                V2.set(k, j, V2.get(k, j) - (f * e[k] + g * d[k]));
               }
-              d[j] = V.get(i - 1, j);
-              V.set(i, j, 0);
+              d[j] = V2.get(i - 1, j);
+              V2.set(i, j, 0);
             }
           }
           d[i] = h;
         }
         for (i = 0; i < n - 1; i++) {
-          V.set(n - 1, i, V.get(i, i));
-          V.set(i, i, 1);
+          V2.set(n - 1, i, V2.get(i, i));
+          V2.set(i, i, 1);
           h = d[i + 1];
           if (h !== 0) {
             for (k = 0; k <= i; k++) {
-              d[k] = V.get(k, i + 1) / h;
+              d[k] = V2.get(k, i + 1) / h;
             }
             for (j = 0; j <= i; j++) {
               g = 0;
               for (k = 0; k <= i; k++) {
-                g += V.get(k, i + 1) * V.get(k, j);
+                g += V2.get(k, i + 1) * V2.get(k, j);
               }
               for (k = 0; k <= i; k++) {
-                V.set(k, j, V.get(k, j) - g * d[k]);
+                V2.set(k, j, V2.get(k, j) - g * d[k]);
               }
             }
           }
           for (k = 0; k <= i; k++) {
-            V.set(k, i + 1, 0);
+            V2.set(k, i + 1, 0);
           }
         }
         for (j = 0; j < n; j++) {
-          d[j] = V.get(n - 1, j);
-          V.set(n - 1, j, 0);
+          d[j] = V2.get(n - 1, j);
+          V2.set(n - 1, j, 0);
         }
-        V.set(n - 1, n - 1, 1);
+        V2.set(n - 1, n - 1, 1);
         e[0] = 0;
       }
-      function tql2(n, e, d, V) {
+      function tql2(n, e, d, V2) {
         let g, h, i, j, k, l, m2, p, r, dl1, c2, c22, c3, el1, s, s2;
         for (i = 1; i < n; i++) {
           e[i - 1] = e[i];
@@ -5203,9 +5203,9 @@ ${indentData}`);
                 p = c2 * d[i] - s * g;
                 d[i + 1] = h + s * (c2 * g + s * d[i]);
                 for (k = 0; k < n; k++) {
-                  h = V.get(k, i + 1);
-                  V.set(k, i + 1, s * V.get(k, i) + c2 * h);
-                  V.set(k, i, c2 * V.get(k, i) - s * h);
+                  h = V2.get(k, i + 1);
+                  V2.set(k, i + 1, s * V2.get(k, i) + c2 * h);
+                  V2.set(k, i, c2 * V2.get(k, i) - s * h);
                 }
               }
               p = -s * s2 * c3 * el1 * e[l] / dl1;
@@ -5229,14 +5229,14 @@ ${indentData}`);
             d[k] = d[i];
             d[i] = p;
             for (j = 0; j < n; j++) {
-              p = V.get(j, i);
-              V.set(j, i, V.get(j, k));
-              V.set(j, k, p);
+              p = V2.get(j, i);
+              V2.set(j, i, V2.get(j, k));
+              V2.set(j, k, p);
             }
           }
         }
       }
-      function orthes(n, H, ort, V) {
+      function orthes(n, H, ort, V2) {
         let low = 0;
         let high = n - 1;
         let f, g, h, i, j, m2;
@@ -5284,7 +5284,7 @@ ${indentData}`);
         }
         for (i = 0; i < n; i++) {
           for (j = 0; j < n; j++) {
-            V.set(i, j, i === j ? 1 : 0);
+            V2.set(i, j, i === j ? 1 : 0);
           }
         }
         for (m2 = high - 1; m2 >= low + 1; m2--) {
@@ -5295,17 +5295,17 @@ ${indentData}`);
             for (j = m2; j <= high; j++) {
               g = 0;
               for (i = m2; i <= high; i++) {
-                g += ort[i] * V.get(i, j);
+                g += ort[i] * V2.get(i, j);
               }
               g = g / ort[m2] / H.get(m2, m2 - 1);
               for (i = m2; i <= high; i++) {
-                V.set(i, j, V.get(i, j) + g * ort[i]);
+                V2.set(i, j, V2.get(i, j) + g * ort[i]);
               }
             }
           }
         }
       }
-      function hqr2(nn, e, d, V, H) {
+      function hqr2(nn, e, d, V2, H) {
         let n = nn - 1;
         let low = 0;
         let high = nn - 1;
@@ -5383,9 +5383,9 @@ ${indentData}`);
                 H.set(i, n, q * H.get(i, n) - p * z);
               }
               for (i = low; i <= high; i++) {
-                z = V.get(i, n - 1);
-                V.set(i, n - 1, q * z + p * V.get(i, n));
-                V.set(i, n, q * V.get(i, n) - p * z);
+                z = V2.get(i, n - 1);
+                V2.set(i, n - 1, q * z + p * V2.get(i, n));
+                V2.set(i, n, q * V2.get(i, n) - p * z);
               }
             } else {
               d[n - 1] = x3 + p;
@@ -5506,13 +5506,13 @@ ${indentData}`);
                   H.set(i, k + 1, H.get(i, k + 1) - p * q);
                 }
                 for (i = low; i <= high; i++) {
-                  p = x3 * V.get(i, k) + y4 * V.get(i, k + 1);
+                  p = x3 * V2.get(i, k) + y4 * V2.get(i, k + 1);
                   if (notlast) {
-                    p = p + z * V.get(i, k + 2);
-                    V.set(i, k + 2, V.get(i, k + 2) - p * r);
+                    p = p + z * V2.get(i, k + 2);
+                    V2.set(i, k + 2, V2.get(i, k + 2) - p * r);
                   }
-                  V.set(i, k, V.get(i, k) - p);
-                  V.set(i, k + 1, V.get(i, k + 1) - p * q);
+                  V2.set(i, k, V2.get(i, k) - p);
+                  V2.set(i, k + 1, V2.get(i, k + 1) - p * q);
                 }
               }
             }
@@ -5620,7 +5620,7 @@ ${indentData}`);
         for (i = 0; i < nn; i++) {
           if (i < low || i > high) {
             for (j = i; j < nn; j++) {
-              V.set(i, j, H.get(i, j));
+              V2.set(i, j, H.get(i, j));
             }
           }
         }
@@ -5628,9 +5628,9 @@ ${indentData}`);
           for (i = low; i <= high; i++) {
             z = 0;
             for (k = low; k <= Math.min(j, high); k++) {
-              z = z + V.get(i, k) * H.get(k, j);
+              z = z + V2.get(i, k) * H.get(k, j);
             }
-            V.set(i, j, z);
+            V2.set(i, j, z);
           }
         }
       }
@@ -5863,7 +5863,7 @@ ${indentData}`);
       }
       function step(data, params, damping, gradientDifference, parameterizedFunction) {
         let value = damping * gradientDifference * gradientDifference;
-        let identity4 = mlMatrix.Matrix.eye(params.length, params.length, value);
+        let identity5 = mlMatrix.Matrix.eye(params.length, params.length, value);
         const func = parameterizedFunction(params);
         let evaluatedData = new Float64Array(data.x.length);
         for (let i = 0; i < data.x.length; i++) {
@@ -5871,7 +5871,7 @@ ${indentData}`);
         }
         let gradientFunc = gradientFunction(data, evaluatedData, params, gradientDifference, parameterizedFunction);
         let matrixFunc = matrixFunction(data, evaluatedData);
-        let inverseMatrix = mlMatrix.inverse(identity4.add(gradientFunc.mmul(gradientFunc.transpose())));
+        let inverseMatrix = mlMatrix.inverse(identity5.add(gradientFunc.mmul(gradientFunc.transpose())));
         params = new mlMatrix.Matrix([params]);
         params = params.sub(inverseMatrix.mmul(gradientFunc).mmul(matrixFunc).mul(gradientDifference).transpose());
         return params.to1DArray();
@@ -9532,7 +9532,7 @@ ${indentData}`);
   }
 
   // node_modules/d3-interpolate/src/transform/index.js
-  function interpolateTransform(parse, pxComma, pxParen, degParen) {
+  function interpolateTransform(parse2, pxComma, pxParen, degParen) {
     function pop(s) {
       return s.length ? s.pop() + " " : "";
     }
@@ -9572,7 +9572,7 @@ ${indentData}`);
     }
     return function(a2, b) {
       var s = [], q = [];
-      a2 = parse(a2), b = parse(b);
+      a2 = parse2(a2), b = parse2(b);
       translate(a2.translateX, a2.translateY, b.translateX, b.translateY, s, q);
       rotate(a2.rotate, b.rotate, s, q);
       skewX(a2.skewX, b.skewX, s, q);
@@ -11475,9 +11475,9 @@ ${indentData}`);
       const points = this._cell(i);
       if (points === null)
         return null;
-      const { vectors: V } = this;
+      const { vectors: V2 } = this;
       const v2 = i * 4;
-      return V[v2] || V[v2 + 1] ? this._clipInfinite(i, points, V[v2], V[v2 + 1], V[v2 + 2], V[v2 + 3]) : this._clipFinite(i, points);
+      return V2[v2] || V2[v2 + 1] ? this._clipInfinite(i, points, V2[v2], V2[v2 + 1], V2[v2 + 2], V2[v2 + 3]) : this._clipFinite(i, points);
     }
     _clipFinite(i, points) {
       const n = points.length;
@@ -11917,7 +11917,7 @@ ${indentData}`);
   }
   function dsv_default(delimiter) {
     var reFormat = new RegExp('["' + delimiter + "\n\r]"), DELIMITER = delimiter.charCodeAt(0);
-    function parse(text, f) {
+    function parse2(text, f) {
       var convert, columns, rows = parseRows(text, function(row, i) {
         if (convert)
           return convert(row, i - 1);
@@ -12002,7 +12002,7 @@ ${indentData}`);
       return value == null ? "" : value instanceof Date ? formatDate(value) : reFormat.test(value += "") ? '"' + value.replace(/"/g, '""') + '"' : value;
     }
     return {
-      parse,
+      parse: parse2,
       parseRows,
       format: format2,
       formatBody,
@@ -12043,12 +12043,12 @@ ${indentData}`);
   }
 
   // node_modules/d3-fetch/src/dsv.js
-  function dsvParse(parse) {
+  function dsvParse(parse2) {
     return function(input, init2, row) {
       if (arguments.length === 2 && typeof init2 === "function")
         row = init2, init2 = void 0;
       return text_default3(input, init2).then(function(response) {
-        return parse(response, row);
+        return parse2(response, row);
       });
     };
   }
@@ -13236,20 +13236,20 @@ ${indentData}`);
     return target.domain(source.domain()).range(source.range()).interpolate(source.interpolate()).clamp(source.clamp()).unknown(source.unknown());
   }
   function transformer() {
-    var domain = unit, range2 = unit, interpolate = value_default, transform2, untransform, unknown, clamp2 = identity2, piecewise, output, input;
+    var domain = unit, range2 = unit, interpolate = value_default, transform2, untransform, unknown, clamp3 = identity2, piecewise, output, input;
     function rescale() {
       var n = Math.min(domain.length, range2.length);
-      if (clamp2 !== identity2)
-        clamp2 = clamper(domain[0], domain[n - 1]);
+      if (clamp3 !== identity2)
+        clamp3 = clamper(domain[0], domain[n - 1]);
       piecewise = n > 2 ? polymap : bimap;
       output = input = null;
       return scale2;
     }
     function scale2(x3) {
-      return x3 == null || isNaN(x3 = +x3) ? unknown : (output || (output = piecewise(domain.map(transform2), range2, interpolate)))(transform2(clamp2(x3)));
+      return x3 == null || isNaN(x3 = +x3) ? unknown : (output || (output = piecewise(domain.map(transform2), range2, interpolate)))(transform2(clamp3(x3)));
     }
     scale2.invert = function(y4) {
-      return clamp2(untransform((input || (input = piecewise(range2, domain.map(transform2), number_default)))(y4)));
+      return clamp3(untransform((input || (input = piecewise(range2, domain.map(transform2), number_default)))(y4)));
     };
     scale2.domain = function(_) {
       return arguments.length ? (domain = Array.from(_, number3), rescale()) : domain.slice();
@@ -13261,7 +13261,7 @@ ${indentData}`);
       return range2 = Array.from(_), interpolate = round_default, rescale();
     };
     scale2.clamp = function(_) {
-      return arguments.length ? (clamp2 = _ ? true : identity2, rescale()) : clamp2 !== identity2;
+      return arguments.length ? (clamp3 = _ ? true : identity2, rescale()) : clamp3 !== identity2;
     };
     scale2.interpolate = function(_) {
       return arguments.length ? (interpolate = _, rescale()) : interpolate;
@@ -35710,165 +35710,1373 @@ ${indentData}`);
   UnrealBloomPass.BlurDirectionX = new Vector2(1, 0);
   UnrealBloomPass.BlurDirectionY = new Vector2(0, 1);
 
-  // federjs/FederView/jsm/shaders/ConvolutionShader.js
-  var ConvolutionShader = {
-    defines: {
-      "KERNEL_SIZE_FLOAT": "25.0",
-      "KERNEL_SIZE_INT": "25"
+  // node_modules/@use-gesture/core/dist/maths-b2a210f4.esm.js
+  function clamp2(v2, min3, max3) {
+    return Math.max(min3, Math.min(v2, max3));
+  }
+  var V = {
+    toVector(v2, fallback) {
+      if (v2 === void 0)
+        v2 = fallback;
+      return Array.isArray(v2) ? v2 : [v2, v2];
     },
-    uniforms: {
-      "tDiffuse": { value: null },
-      "uImageIncrement": { value: new Vector2(1953125e-9, 0) },
-      "cKernel": { value: [] }
+    add(v1, v2) {
+      return [v1[0] + v2[0], v1[1] + v2[1]];
     },
-    vertexShader: `
-
-		uniform vec2 uImageIncrement;
-
-		varying vec2 vUv;
-
-		void main() {
-
-			vUv = uv - ( ( KERNEL_SIZE_FLOAT - 1.0 ) / 2.0 ) * uImageIncrement;
-			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-
-		}`,
-    fragmentShader: `
-
-		uniform float cKernel[ KERNEL_SIZE_INT ];
-
-		uniform sampler2D tDiffuse;
-		uniform vec2 uImageIncrement;
-
-		varying vec2 vUv;
-
-		void main() {
-
-			vec2 imageCoord = vUv;
-			vec4 sum = vec4( 0.0, 0.0, 0.0, 0.0 );
-
-			for( int i = 0; i < KERNEL_SIZE_INT; i ++ ) {
-
-				sum += texture2D( tDiffuse, imageCoord ) * cKernel[ i ];
-				imageCoord += uImageIncrement;
-
-			}
-
-			gl_FragColor = sum;
-
-		}`,
-    buildKernel: function(sigma) {
-      const kMaxKernelSize = 25;
-      let kernelSize = 2 * Math.ceil(sigma * 3) + 1;
-      if (kernelSize > kMaxKernelSize)
-        kernelSize = kMaxKernelSize;
-      const halfWidth = (kernelSize - 1) * 0.5;
-      const values = new Array(kernelSize);
-      let sum2 = 0;
-      for (let i = 0; i < kernelSize; ++i) {
-        values[i] = gauss(i - halfWidth, sigma);
-        sum2 += values[i];
-      }
-      for (let i = 0; i < kernelSize; ++i)
-        values[i] /= sum2;
-      return values;
+    sub(v1, v2) {
+      return [v1[0] - v2[0], v1[1] - v2[1]];
+    },
+    addTo(v1, v2) {
+      v1[0] += v2[0];
+      v1[1] += v2[1];
+    },
+    subTo(v1, v2) {
+      v1[0] -= v2[0];
+      v1[1] -= v2[1];
     }
   };
-  function gauss(x3, sigma) {
-    return Math.exp(-(x3 * x3) / (2 * sigma * sigma));
+  function rubberband(distance, dimension, constant) {
+    if (dimension === 0 || Math.abs(dimension) === Infinity)
+      return Math.pow(distance, constant * 5);
+    return distance * dimension * constant / (dimension + constant * distance);
+  }
+  function rubberbandIfOutOfBounds(position, min3, max3, constant = 0.15) {
+    if (constant === 0)
+      return clamp2(position, min3, max3);
+    if (position < min3)
+      return -rubberband(min3 - position, max3 - min3, constant) + min3;
+    if (position > max3)
+      return +rubberband(position - max3, max3 - min3, constant) + max3;
+    return position;
+  }
+  function computeRubberband(bounds, [Vx, Vy], [Rx, Ry]) {
+    const [[X0, X1], [Y0, Y1]] = bounds;
+    return [rubberbandIfOutOfBounds(Vx, X0, X1, Rx), rubberbandIfOutOfBounds(Vy, Y0, Y1, Ry)];
   }
 
-  // federjs/FederView/jsm/postprocessing/BloomPass.js
-  var BloomPass = class extends Pass {
-    constructor(strength = 1, kernelSize = 25, sigma = 4, resolution = 256) {
-      super();
-      this.renderTargetX = new WebGLRenderTarget(resolution, resolution);
-      this.renderTargetX.texture.name = "BloomPass.x";
-      this.renderTargetY = new WebGLRenderTarget(resolution, resolution);
-      this.renderTargetY.texture.name = "BloomPass.y";
-      this.combineUniforms = UniformsUtils.clone(CombineShader.uniforms);
-      this.combineUniforms["strength"].value = strength;
-      this.materialCombine = new ShaderMaterial({
-        uniforms: this.combineUniforms,
-        vertexShader: CombineShader.vertexShader,
-        fragmentShader: CombineShader.fragmentShader,
-        blending: AdditiveBlending,
-        transparent: true
+  // node_modules/@use-gesture/core/dist/actions-65020aef.esm.js
+  function _defineProperty(obj, key, value) {
+    if (key in obj) {
+      Object.defineProperty(obj, key, {
+        value,
+        enumerable: true,
+        configurable: true,
+        writable: true
       });
-      if (ConvolutionShader === void 0)
-        console.error("THREE.BloomPass relies on ConvolutionShader");
-      const convolutionShader = ConvolutionShader;
-      this.convolutionUniforms = UniformsUtils.clone(convolutionShader.uniforms);
-      this.convolutionUniforms["uImageIncrement"].value = BloomPass.blurX;
-      this.convolutionUniforms["cKernel"].value = ConvolutionShader.buildKernel(sigma);
-      this.materialConvolution = new ShaderMaterial({
-        uniforms: this.convolutionUniforms,
-        vertexShader: convolutionShader.vertexShader,
-        fragmentShader: convolutionShader.fragmentShader,
-        defines: {
-          "KERNEL_SIZE_FLOAT": kernelSize.toFixed(1),
-          "KERNEL_SIZE_INT": kernelSize.toFixed(0)
+    } else {
+      obj[key] = value;
+    }
+    return obj;
+  }
+  function ownKeys(object, enumerableOnly) {
+    var keys = Object.keys(object);
+    if (Object.getOwnPropertySymbols) {
+      var symbols = Object.getOwnPropertySymbols(object);
+      enumerableOnly && (symbols = symbols.filter(function(sym) {
+        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+      })), keys.push.apply(keys, symbols);
+    }
+    return keys;
+  }
+  function _objectSpread2(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i] != null ? arguments[i] : {};
+      i % 2 ? ownKeys(Object(source), true).forEach(function(key) {
+        _defineProperty(target, key, source[key]);
+      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys(Object(source)).forEach(function(key) {
+        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+      });
+    }
+    return target;
+  }
+  var EVENT_TYPE_MAP = {
+    pointer: {
+      start: "down",
+      change: "move",
+      end: "up"
+    },
+    mouse: {
+      start: "down",
+      change: "move",
+      end: "up"
+    },
+    touch: {
+      start: "start",
+      change: "move",
+      end: "end"
+    },
+    gesture: {
+      start: "start",
+      change: "change",
+      end: "end"
+    }
+  };
+  function capitalize(string) {
+    if (!string)
+      return "";
+    return string[0].toUpperCase() + string.slice(1);
+  }
+  var actionsWithoutCaptureSupported = ["enter", "leave"];
+  function hasCapture(capture = false, actionKey) {
+    return capture && !actionsWithoutCaptureSupported.includes(actionKey);
+  }
+  function toHandlerProp(device, action = "", capture = false) {
+    const deviceProps = EVENT_TYPE_MAP[device];
+    const actionKey = deviceProps ? deviceProps[action] || action : action;
+    return "on" + capitalize(device) + capitalize(actionKey) + (hasCapture(capture, actionKey) ? "Capture" : "");
+  }
+  var pointerCaptureEvents = ["gotpointercapture", "lostpointercapture"];
+  function parseProp(prop) {
+    let eventKey = prop.substring(2).toLowerCase();
+    const passive = !!~eventKey.indexOf("passive");
+    if (passive)
+      eventKey = eventKey.replace("passive", "");
+    const captureKey = pointerCaptureEvents.includes(eventKey) ? "capturecapture" : "capture";
+    const capture = !!~eventKey.indexOf(captureKey);
+    if (capture)
+      eventKey = eventKey.replace("capture", "");
+    return {
+      device: eventKey,
+      capture,
+      passive
+    };
+  }
+  function toDomEventType(device, action = "") {
+    const deviceProps = EVENT_TYPE_MAP[device];
+    const actionKey = deviceProps ? deviceProps[action] || action : action;
+    return device + actionKey;
+  }
+  function isTouch(event) {
+    return "touches" in event;
+  }
+  function getCurrentTargetTouchList(event) {
+    return Array.from(event.touches).filter((e) => {
+      var _event$currentTarget, _event$currentTarget$;
+      return e.target === event.currentTarget || ((_event$currentTarget = event.currentTarget) === null || _event$currentTarget === void 0 ? void 0 : (_event$currentTarget$ = _event$currentTarget.contains) === null || _event$currentTarget$ === void 0 ? void 0 : _event$currentTarget$.call(_event$currentTarget, e.target));
+    });
+  }
+  function distanceAngle(P1, P2) {
+    const dx = P2.clientX - P1.clientX;
+    const dy = P2.clientY - P1.clientY;
+    const cx = (P2.clientX + P1.clientX) / 2;
+    const cy = (P2.clientY + P1.clientY) / 2;
+    const distance = Math.hypot(dx, dy);
+    const angle = -(Math.atan2(dx, dy) * 180) / Math.PI;
+    const origin = [cx, cy];
+    return {
+      angle,
+      distance,
+      origin
+    };
+  }
+  function touchIds(event) {
+    return getCurrentTargetTouchList(event).map((touch) => touch.identifier);
+  }
+  function touchDistanceAngle(event, ids) {
+    const [P1, P2] = Array.from(event.touches).filter((touch) => ids.includes(touch.identifier));
+    return distanceAngle(P1, P2);
+  }
+  var LINE_HEIGHT = 40;
+  var PAGE_HEIGHT = 800;
+  function wheelValues(event) {
+    let {
+      deltaX,
+      deltaY,
+      deltaMode
+    } = event;
+    if (deltaMode === 1) {
+      deltaX *= LINE_HEIGHT;
+      deltaY *= LINE_HEIGHT;
+    } else if (deltaMode === 2) {
+      deltaX *= PAGE_HEIGHT;
+      deltaY *= PAGE_HEIGHT;
+    }
+    return [deltaX, deltaY];
+  }
+  function getEventDetails(event) {
+    const payload = {};
+    if ("buttons" in event)
+      payload.buttons = event.buttons;
+    if ("shiftKey" in event) {
+      const {
+        shiftKey,
+        altKey,
+        metaKey,
+        ctrlKey
+      } = event;
+      Object.assign(payload, {
+        shiftKey,
+        altKey,
+        metaKey,
+        ctrlKey
+      });
+    }
+    return payload;
+  }
+  function call(v2, ...args) {
+    if (typeof v2 === "function") {
+      return v2(...args);
+    } else {
+      return v2;
+    }
+  }
+  function noop2() {
+  }
+  function chain(...fns) {
+    if (fns.length === 0)
+      return noop2;
+    if (fns.length === 1)
+      return fns[0];
+    return function() {
+      let result;
+      for (const fn of fns) {
+        result = fn.apply(this, arguments) || result;
+      }
+      return result;
+    };
+  }
+  function assignDefault(value, fallback) {
+    return Object.assign({}, fallback, value || {});
+  }
+  var BEFORE_LAST_KINEMATICS_DELAY = 32;
+  var Engine = class {
+    constructor(ctrl, args, key) {
+      this.ctrl = ctrl;
+      this.args = args;
+      this.key = key;
+      if (!this.state) {
+        this.state = {};
+        this.computeValues([0, 0]);
+        this.computeInitial();
+        if (this.init)
+          this.init();
+        this.reset();
+      }
+    }
+    get state() {
+      return this.ctrl.state[this.key];
+    }
+    set state(state) {
+      this.ctrl.state[this.key] = state;
+    }
+    get shared() {
+      return this.ctrl.state.shared;
+    }
+    get eventStore() {
+      return this.ctrl.gestureEventStores[this.key];
+    }
+    get timeoutStore() {
+      return this.ctrl.gestureTimeoutStores[this.key];
+    }
+    get config() {
+      return this.ctrl.config[this.key];
+    }
+    get sharedConfig() {
+      return this.ctrl.config.shared;
+    }
+    get handler() {
+      return this.ctrl.handlers[this.key];
+    }
+    reset() {
+      const {
+        state,
+        shared,
+        ingKey,
+        args
+      } = this;
+      shared[ingKey] = state._active = state.active = state._blocked = state._force = false;
+      state._step = [false, false];
+      state.intentional = false;
+      state._movement = [0, 0];
+      state._distance = [0, 0];
+      state._direction = [0, 0];
+      state._delta = [0, 0];
+      state._bounds = [[-Infinity, Infinity], [-Infinity, Infinity]];
+      state.args = args;
+      state.axis = void 0;
+      state.memo = void 0;
+      state.elapsedTime = 0;
+      state.direction = [0, 0];
+      state.distance = [0, 0];
+      state.overflow = [0, 0];
+      state._movementBound = [false, false];
+      state.velocity = [0, 0];
+      state.movement = [0, 0];
+      state.delta = [0, 0];
+      state.timeStamp = 0;
+    }
+    start(event) {
+      const state = this.state;
+      const config = this.config;
+      if (!state._active) {
+        this.reset();
+        this.computeInitial();
+        state._active = true;
+        state.target = event.target;
+        state.currentTarget = event.currentTarget;
+        state.lastOffset = config.from ? call(config.from, state) : state.offset;
+        state.offset = state.lastOffset;
+      }
+      state.startTime = state.timeStamp = event.timeStamp;
+    }
+    computeValues(values) {
+      const state = this.state;
+      state._values = values;
+      state.values = this.config.transform(values);
+    }
+    computeInitial() {
+      const state = this.state;
+      state._initial = state._values;
+      state.initial = state.values;
+    }
+    compute(event) {
+      const {
+        state,
+        config,
+        shared
+      } = this;
+      state.args = this.args;
+      let dt = 0;
+      if (event) {
+        state.event = event;
+        if (config.preventDefault && event.cancelable)
+          state.event.preventDefault();
+        state.type = event.type;
+        shared.touches = this.ctrl.pointerIds.size || this.ctrl.touchIds.size;
+        shared.locked = !!document.pointerLockElement;
+        Object.assign(shared, getEventDetails(event));
+        shared.down = shared.pressed = shared.buttons % 2 === 1 || shared.touches > 0;
+        dt = event.timeStamp - state.timeStamp;
+        state.timeStamp = event.timeStamp;
+        state.elapsedTime = state.timeStamp - state.startTime;
+      }
+      if (state._active) {
+        const _absoluteDelta = state._delta.map(Math.abs);
+        V.addTo(state._distance, _absoluteDelta);
+      }
+      if (this.axisIntent)
+        this.axisIntent(event);
+      const [_m0, _m12] = state._movement;
+      const [t0, t1] = config.threshold;
+      const {
+        _step,
+        values
+      } = state;
+      if (config.hasCustomTransform) {
+        if (_step[0] === false)
+          _step[0] = Math.abs(_m0) >= t0 && values[0];
+        if (_step[1] === false)
+          _step[1] = Math.abs(_m12) >= t1 && values[1];
+      } else {
+        if (_step[0] === false)
+          _step[0] = Math.abs(_m0) >= t0 && Math.sign(_m0) * t0;
+        if (_step[1] === false)
+          _step[1] = Math.abs(_m12) >= t1 && Math.sign(_m12) * t1;
+      }
+      state.intentional = _step[0] !== false || _step[1] !== false;
+      if (!state.intentional)
+        return;
+      const movement = [0, 0];
+      if (config.hasCustomTransform) {
+        const [v0, v1] = values;
+        movement[0] = _step[0] !== false ? v0 - _step[0] : 0;
+        movement[1] = _step[1] !== false ? v1 - _step[1] : 0;
+      } else {
+        movement[0] = _step[0] !== false ? _m0 - _step[0] : 0;
+        movement[1] = _step[1] !== false ? _m12 - _step[1] : 0;
+      }
+      if (this.restrictToAxis && !state._blocked)
+        this.restrictToAxis(movement);
+      const previousOffset = state.offset;
+      const gestureIsActive = state._active && !state._blocked || state.active;
+      if (gestureIsActive) {
+        state.first = state._active && !state.active;
+        state.last = !state._active && state.active;
+        state.active = shared[this.ingKey] = state._active;
+        if (event) {
+          if (state.first) {
+            if ("bounds" in config)
+              state._bounds = call(config.bounds, state);
+            if (this.setup)
+              this.setup();
+          }
+          state.movement = movement;
+          this.computeOffset();
+        }
+      }
+      const [ox, oy] = state.offset;
+      const [[x0, x1], [y0, y1]] = state._bounds;
+      state.overflow = [ox < x0 ? -1 : ox > x1 ? 1 : 0, oy < y0 ? -1 : oy > y1 ? 1 : 0];
+      state._movementBound[0] = state.overflow[0] ? state._movementBound[0] === false ? state._movement[0] : state._movementBound[0] : false;
+      state._movementBound[1] = state.overflow[1] ? state._movementBound[1] === false ? state._movement[1] : state._movementBound[1] : false;
+      const rubberband2 = state._active ? config.rubberband || [0, 0] : [0, 0];
+      state.offset = computeRubberband(state._bounds, state.offset, rubberband2);
+      state.delta = V.sub(state.offset, previousOffset);
+      this.computeMovement();
+      if (gestureIsActive && (!state.last || dt > BEFORE_LAST_KINEMATICS_DELAY)) {
+        state.delta = V.sub(state.offset, previousOffset);
+        const absoluteDelta = state.delta.map(Math.abs);
+        V.addTo(state.distance, absoluteDelta);
+        state.direction = state.delta.map(Math.sign);
+        state._direction = state._delta.map(Math.sign);
+        if (!state.first && dt > 0) {
+          state.velocity = [absoluteDelta[0] / dt, absoluteDelta[1] / dt];
+        }
+      }
+    }
+    emit() {
+      const state = this.state;
+      const shared = this.shared;
+      const config = this.config;
+      if (!state._active)
+        this.clean();
+      if ((state._blocked || !state.intentional) && !state._force && !config.triggerAllEvents)
+        return;
+      const memo = this.handler(_objectSpread2(_objectSpread2(_objectSpread2({}, shared), state), {}, {
+        [this.aliasKey]: state.values
+      }));
+      if (memo !== void 0)
+        state.memo = memo;
+    }
+    clean() {
+      this.eventStore.clean();
+      this.timeoutStore.clean();
+    }
+  };
+  var identity4 = (v2) => v2;
+  var DEFAULT_RUBBERBAND = 0.15;
+  var commonConfigResolver = {
+    enabled(value = true) {
+      return value;
+    },
+    eventOptions(value, _k, config) {
+      return _objectSpread2(_objectSpread2({}, config.shared.eventOptions), value);
+    },
+    preventDefault(value = false) {
+      return value;
+    },
+    triggerAllEvents(value = false) {
+      return value;
+    },
+    rubberband(value = 0) {
+      switch (value) {
+        case true:
+          return [DEFAULT_RUBBERBAND, DEFAULT_RUBBERBAND];
+        case false:
+          return [0, 0];
+        default:
+          return V.toVector(value);
+      }
+    },
+    from(value) {
+      if (typeof value === "function")
+        return value;
+      if (value != null)
+        return V.toVector(value);
+    },
+    transform(value, _k, config) {
+      const transform2 = value || config.shared.transform;
+      this.hasCustomTransform = !!transform2;
+      if (true) {
+        const originalTransform = transform2 || identity4;
+        return (v2) => {
+          const r = originalTransform(v2);
+          if (!isFinite(r[0]) || !isFinite(r[1])) {
+            console.warn(`[@use-gesture]: config.transform() must produce a valid result, but it was: [${r[0]},${[1]}]`);
+          }
+          return r;
+        };
+      }
+      return transform2 || identity4;
+    },
+    threshold(value) {
+      return V.toVector(value, 0);
+    }
+  };
+  if (true) {
+    Object.assign(commonConfigResolver, {
+      domTarget(value) {
+        if (value !== void 0) {
+          throw Error(`[@use-gesture]: \`domTarget\` option has been renamed to \`target\`.`);
+        }
+        return NaN;
+      },
+      lockDirection(value) {
+        if (value !== void 0) {
+          throw Error(`[@use-gesture]: \`lockDirection\` option has been merged with \`axis\`. Use it as in \`{ axis: 'lock' }\``);
+        }
+        return NaN;
+      },
+      initial(value) {
+        if (value !== void 0) {
+          throw Error(`[@use-gesture]: \`initial\` option has been renamed to \`from\`.`);
+        }
+        return NaN;
+      }
+    });
+  }
+  var DEFAULT_AXIS_THRESHOLD = 0;
+  var coordinatesConfigResolver = _objectSpread2(_objectSpread2({}, commonConfigResolver), {}, {
+    axis(_v, _k, {
+      axis
+    }) {
+      this.lockDirection = axis === "lock";
+      if (!this.lockDirection)
+        return axis;
+    },
+    axisThreshold(value = DEFAULT_AXIS_THRESHOLD) {
+      return value;
+    },
+    bounds(value = {}) {
+      if (typeof value === "function") {
+        return (state) => coordinatesConfigResolver.bounds(value(state));
+      }
+      if ("current" in value) {
+        return () => value.current;
+      }
+      if (typeof HTMLElement === "function" && value instanceof HTMLElement) {
+        return value;
+      }
+      const {
+        left = -Infinity,
+        right = Infinity,
+        top = -Infinity,
+        bottom = Infinity
+      } = value;
+      return [[left, right], [top, bottom]];
+    }
+  });
+  var isBrowser = typeof window !== "undefined" && window.document && window.document.createElement;
+  function supportsTouchEvents() {
+    return isBrowser && "ontouchstart" in window;
+  }
+  function isTouchScreen() {
+    return supportsTouchEvents() || isBrowser && window.navigator.maxTouchPoints > 1;
+  }
+  function supportsPointerEvents() {
+    return isBrowser && "onpointerdown" in window;
+  }
+  function supportsPointerLock() {
+    return isBrowser && "exitPointerLock" in window.document;
+  }
+  function supportsGestureEvents() {
+    try {
+      return "constructor" in GestureEvent;
+    } catch (e) {
+      return false;
+    }
+  }
+  var SUPPORT = {
+    isBrowser,
+    gesture: supportsGestureEvents(),
+    touch: isTouchScreen(),
+    touchscreen: isTouchScreen(),
+    pointer: supportsPointerEvents(),
+    pointerLock: supportsPointerLock()
+  };
+  var DEFAULT_PREVENT_SCROLL_DELAY = 250;
+  var DEFAULT_DRAG_DELAY = 180;
+  var DEFAULT_SWIPE_VELOCITY = 0.5;
+  var DEFAULT_SWIPE_DISTANCE = 50;
+  var DEFAULT_SWIPE_DURATION = 250;
+  var DEFAULT_DRAG_AXIS_THRESHOLD = {
+    mouse: 0,
+    touch: 0,
+    pen: 8
+  };
+  var dragConfigResolver = _objectSpread2(_objectSpread2({}, coordinatesConfigResolver), {}, {
+    device(_v, _k, {
+      pointer: {
+        touch = false,
+        lock = false,
+        mouse = false
+      } = {}
+    }) {
+      this.pointerLock = lock && SUPPORT.pointerLock;
+      if (SUPPORT.touch && touch)
+        return "touch";
+      if (this.pointerLock)
+        return "mouse";
+      if (SUPPORT.pointer && !mouse)
+        return "pointer";
+      if (SUPPORT.touch)
+        return "touch";
+      return "mouse";
+    },
+    preventScrollAxis(value, _k, {
+      preventScroll
+    }) {
+      this.preventScrollDelay = typeof preventScroll === "number" ? preventScroll : preventScroll || preventScroll === void 0 && value ? DEFAULT_PREVENT_SCROLL_DELAY : void 0;
+      if (!SUPPORT.touchscreen || preventScroll === false)
+        return void 0;
+      return value ? value : preventScroll !== void 0 ? "y" : void 0;
+    },
+    pointerCapture(_v, _k, {
+      pointer: {
+        capture = true,
+        buttons = 1
+      } = {}
+    }) {
+      this.pointerButtons = buttons;
+      return !this.pointerLock && this.device === "pointer" && capture;
+    },
+    keys(value = true) {
+      return value;
+    },
+    threshold(value, _k, {
+      filterTaps = false,
+      tapsThreshold = 3,
+      axis = void 0
+    }) {
+      const threshold = V.toVector(value, filterTaps ? tapsThreshold : axis ? 1 : 0);
+      this.filterTaps = filterTaps;
+      this.tapsThreshold = tapsThreshold;
+      return threshold;
+    },
+    swipe({
+      velocity = DEFAULT_SWIPE_VELOCITY,
+      distance = DEFAULT_SWIPE_DISTANCE,
+      duration = DEFAULT_SWIPE_DURATION
+    } = {}) {
+      return {
+        velocity: this.transform(V.toVector(velocity)),
+        distance: this.transform(V.toVector(distance)),
+        duration
+      };
+    },
+    delay(value = 0) {
+      switch (value) {
+        case true:
+          return DEFAULT_DRAG_DELAY;
+        case false:
+          return 0;
+        default:
+          return value;
+      }
+    },
+    axisThreshold(value) {
+      if (!value)
+        return DEFAULT_DRAG_AXIS_THRESHOLD;
+      return _objectSpread2(_objectSpread2({}, DEFAULT_DRAG_AXIS_THRESHOLD), value);
+    }
+  });
+  if (true) {
+    Object.assign(dragConfigResolver, {
+      useTouch(value) {
+        if (value !== void 0) {
+          throw Error(`[@use-gesture]: \`useTouch\` option has been renamed to \`pointer.touch\`. Use it as in \`{ pointer: { touch: true } }\`.`);
+        }
+        return NaN;
+      },
+      experimental_preventWindowScrollY(value) {
+        if (value !== void 0) {
+          throw Error(`[@use-gesture]: \`experimental_preventWindowScrollY\` option has been renamed to \`preventScroll\`.`);
+        }
+        return NaN;
+      },
+      swipeVelocity(value) {
+        if (value !== void 0) {
+          throw Error(`[@use-gesture]: \`swipeVelocity\` option has been renamed to \`swipe.velocity\`. Use it as in \`{ swipe: { velocity: 0.5 } }\`.`);
+        }
+        return NaN;
+      },
+      swipeDistance(value) {
+        if (value !== void 0) {
+          throw Error(`[@use-gesture]: \`swipeDistance\` option has been renamed to \`swipe.distance\`. Use it as in \`{ swipe: { distance: 50 } }\`.`);
+        }
+        return NaN;
+      },
+      swipeDuration(value) {
+        if (value !== void 0) {
+          throw Error(`[@use-gesture]: \`swipeDuration\` option has been renamed to \`swipe.duration\`. Use it as in \`{ swipe: { duration: 250 } }\`.`);
+        }
+        return NaN;
+      }
+    });
+  }
+  var SCALE_ANGLE_RATIO_INTENT_DEG = 30;
+  var PINCH_WHEEL_RATIO = 100;
+  var PinchEngine = class extends Engine {
+    constructor(...args) {
+      super(...args);
+      _defineProperty(this, "ingKey", "pinching");
+      _defineProperty(this, "aliasKey", "da");
+    }
+    init() {
+      this.state.offset = [1, 0];
+      this.state.lastOffset = [1, 0];
+      this.state._pointerEvents = /* @__PURE__ */ new Map();
+    }
+    reset() {
+      super.reset();
+      const state = this.state;
+      state._touchIds = [];
+      state.canceled = false;
+      state.cancel = this.cancel.bind(this);
+      state.turns = 0;
+    }
+    computeOffset() {
+      const {
+        type: type2,
+        movement,
+        lastOffset
+      } = this.state;
+      if (type2 === "wheel") {
+        this.state.offset = V.add(movement, lastOffset);
+      } else {
+        this.state.offset = [(1 + movement[0]) * lastOffset[0], movement[1] + lastOffset[1]];
+      }
+    }
+    computeMovement() {
+      const {
+        offset,
+        lastOffset
+      } = this.state;
+      this.state.movement = [offset[0] / lastOffset[0], offset[1] - lastOffset[1]];
+    }
+    axisIntent() {
+      const state = this.state;
+      const [_m0, _m12] = state._movement;
+      if (!state.axis) {
+        const axisMovementDifference = Math.abs(_m0) * SCALE_ANGLE_RATIO_INTENT_DEG - Math.abs(_m12);
+        if (axisMovementDifference < 0)
+          state.axis = "angle";
+        else if (axisMovementDifference > 0)
+          state.axis = "scale";
+      }
+    }
+    restrictToAxis(v2) {
+      if (this.config.lockDirection) {
+        if (this.state.axis === "scale")
+          v2[1] = 0;
+        else if (this.state.axis === "angle")
+          v2[0] = 0;
+      }
+    }
+    cancel() {
+      const state = this.state;
+      if (state.canceled)
+        return;
+      setTimeout(() => {
+        state.canceled = true;
+        state._active = false;
+        this.compute();
+        this.emit();
+      }, 0);
+    }
+    touchStart(event) {
+      this.ctrl.setEventIds(event);
+      const state = this.state;
+      const ctrlTouchIds = this.ctrl.touchIds;
+      if (state._active) {
+        if (state._touchIds.every((id2) => ctrlTouchIds.has(id2)))
+          return;
+      }
+      if (ctrlTouchIds.size < 2)
+        return;
+      this.start(event);
+      state._touchIds = Array.from(ctrlTouchIds).slice(0, 2);
+      const payload = touchDistanceAngle(event, state._touchIds);
+      this.pinchStart(event, payload);
+    }
+    pointerStart(event) {
+      if (event.buttons != null && event.buttons % 2 !== 1)
+        return;
+      this.ctrl.setEventIds(event);
+      event.target.setPointerCapture(event.pointerId);
+      const state = this.state;
+      const _pointerEvents = state._pointerEvents;
+      const ctrlPointerIds = this.ctrl.pointerIds;
+      if (state._active) {
+        if (Array.from(_pointerEvents.keys()).every((id2) => ctrlPointerIds.has(id2)))
+          return;
+      }
+      if (_pointerEvents.size < 2) {
+        _pointerEvents.set(event.pointerId, event);
+      }
+      if (state._pointerEvents.size < 2)
+        return;
+      this.start(event);
+      const payload = distanceAngle(...Array.from(_pointerEvents.values()));
+      this.pinchStart(event, payload);
+    }
+    pinchStart(event, payload) {
+      const state = this.state;
+      state.origin = payload.origin;
+      this.computeValues([payload.distance, payload.angle]);
+      this.computeInitial();
+      this.compute(event);
+      this.emit();
+    }
+    touchMove(event) {
+      if (!this.state._active)
+        return;
+      const payload = touchDistanceAngle(event, this.state._touchIds);
+      this.pinchMove(event, payload);
+    }
+    pointerMove(event) {
+      const _pointerEvents = this.state._pointerEvents;
+      if (_pointerEvents.has(event.pointerId)) {
+        _pointerEvents.set(event.pointerId, event);
+      }
+      if (!this.state._active)
+        return;
+      const payload = distanceAngle(...Array.from(_pointerEvents.values()));
+      this.pinchMove(event, payload);
+    }
+    pinchMove(event, payload) {
+      const state = this.state;
+      const prev_a = state._values[1];
+      const delta_a = payload.angle - prev_a;
+      let delta_turns = 0;
+      if (Math.abs(delta_a) > 270)
+        delta_turns += Math.sign(delta_a);
+      this.computeValues([payload.distance, payload.angle - 360 * delta_turns]);
+      state.origin = payload.origin;
+      state.turns = delta_turns;
+      state._movement = [state._values[0] / state._initial[0] - 1, state._values[1] - state._initial[1]];
+      this.compute(event);
+      this.emit();
+    }
+    touchEnd(event) {
+      this.ctrl.setEventIds(event);
+      if (!this.state._active)
+        return;
+      if (this.state._touchIds.some((id2) => !this.ctrl.touchIds.has(id2))) {
+        this.state._active = false;
+        this.compute(event);
+        this.emit();
+      }
+    }
+    pointerEnd(event) {
+      const state = this.state;
+      this.ctrl.setEventIds(event);
+      try {
+        event.target.releasePointerCapture(event.pointerId);
+      } catch (_unused) {
+      }
+      if (state._pointerEvents.has(event.pointerId)) {
+        state._pointerEvents.delete(event.pointerId);
+      }
+      if (!state._active)
+        return;
+      if (state._pointerEvents.size < 2) {
+        state._active = false;
+        this.compute(event);
+        this.emit();
+      }
+    }
+    gestureStart(event) {
+      if (event.cancelable)
+        event.preventDefault();
+      const state = this.state;
+      if (state._active)
+        return;
+      this.start(event);
+      this.computeValues([event.scale, event.rotation]);
+      state.origin = [event.clientX, event.clientY];
+      this.compute(event);
+      this.emit();
+    }
+    gestureMove(event) {
+      if (event.cancelable)
+        event.preventDefault();
+      if (!this.state._active)
+        return;
+      const state = this.state;
+      this.computeValues([event.scale, event.rotation]);
+      state.origin = [event.clientX, event.clientY];
+      const _previousMovement = state._movement;
+      state._movement = [event.scale - 1, event.rotation];
+      state._delta = V.sub(state._movement, _previousMovement);
+      this.compute(event);
+      this.emit();
+    }
+    gestureEnd(event) {
+      if (!this.state._active)
+        return;
+      this.state._active = false;
+      this.compute(event);
+      this.emit();
+    }
+    wheel(event) {
+      const modifierKey = this.config.modifierKey;
+      if (modifierKey && !event[modifierKey])
+        return;
+      if (!this.state._active)
+        this.wheelStart(event);
+      else
+        this.wheelChange(event);
+      this.timeoutStore.add("wheelEnd", this.wheelEnd.bind(this));
+    }
+    wheelStart(event) {
+      this.start(event);
+      this.wheelChange(event);
+    }
+    wheelChange(event) {
+      const isR3f = "uv" in event;
+      if (!isR3f) {
+        if (event.cancelable) {
+          event.preventDefault();
+        }
+        if (!event.defaultPrevented) {
+          console.warn(`[@use-gesture]: To properly support zoom on trackpads, try using the \`target\` option.
+
+This message will only appear in development mode.`);
+        }
+      }
+      const state = this.state;
+      state._delta = [-wheelValues(event)[1] / PINCH_WHEEL_RATIO * state.offset[0], 0];
+      V.addTo(state._movement, state._delta);
+      this.state.origin = [event.clientX, event.clientY];
+      this.compute(event);
+      this.emit();
+    }
+    wheelEnd() {
+      if (!this.state._active)
+        return;
+      this.state._active = false;
+      this.compute();
+      this.emit();
+    }
+    bind(bindFunction) {
+      const device = this.config.device;
+      if (!!device) {
+        bindFunction(device, "start", this[device + "Start"].bind(this));
+        bindFunction(device, "change", this[device + "Move"].bind(this));
+        bindFunction(device, "end", this[device + "End"].bind(this));
+        bindFunction(device, "cancel", this[device + "End"].bind(this));
+      }
+      bindFunction("wheel", "", this.wheel.bind(this), {
+        passive: false
+      });
+    }
+  };
+  var pinchConfigResolver = _objectSpread2(_objectSpread2({}, commonConfigResolver), {}, {
+    device(_v, _k, {
+      shared,
+      pointer: {
+        touch = false
+      } = {}
+    }) {
+      const sharedConfig = shared;
+      if (sharedConfig.target && !SUPPORT.touch && SUPPORT.gesture)
+        return "gesture";
+      if (SUPPORT.touch && touch)
+        return "touch";
+      if (SUPPORT.touchscreen) {
+        if (SUPPORT.pointer)
+          return "pointer";
+        if (SUPPORT.touch)
+          return "touch";
+      }
+    },
+    bounds(_v, _k, {
+      scaleBounds = {},
+      angleBounds = {}
+    }) {
+      const _scaleBounds = (state) => {
+        const D2 = assignDefault(call(scaleBounds, state), {
+          min: -Infinity,
+          max: Infinity
+        });
+        return [D2.min, D2.max];
+      };
+      const _angleBounds = (state) => {
+        const A = assignDefault(call(angleBounds, state), {
+          min: -Infinity,
+          max: Infinity
+        });
+        return [A.min, A.max];
+      };
+      if (typeof scaleBounds !== "function" && typeof angleBounds !== "function")
+        return [_scaleBounds(), _angleBounds()];
+      return (state) => [_scaleBounds(state), _angleBounds(state)];
+    },
+    threshold(value, _k, config) {
+      this.lockDirection = config.axis === "lock";
+      const threshold = V.toVector(value, this.lockDirection ? [0.1, 3] : 0);
+      return threshold;
+    },
+    modifierKey(value) {
+      if (value === void 0)
+        return "ctrlKey";
+      return value;
+    }
+  });
+  var moveConfigResolver = _objectSpread2(_objectSpread2({}, coordinatesConfigResolver), {}, {
+    mouseOnly: (value = true) => value
+  });
+  var hoverConfigResolver = _objectSpread2(_objectSpread2({}, coordinatesConfigResolver), {}, {
+    mouseOnly: (value = true) => value
+  });
+  var EngineMap = /* @__PURE__ */ new Map();
+  var ConfigResolverMap = /* @__PURE__ */ new Map();
+  function registerAction(action) {
+    EngineMap.set(action.key, action.engine);
+    ConfigResolverMap.set(action.key, action.resolver);
+  }
+  var pinchAction = {
+    key: "pinch",
+    engine: PinchEngine,
+    resolver: pinchConfigResolver
+  };
+
+  // node_modules/@use-gesture/core/dist/use-gesture-core.esm.js
+  function _objectWithoutPropertiesLoose(source, excluded) {
+    if (source == null)
+      return {};
+    var target = {};
+    var sourceKeys = Object.keys(source);
+    var key, i;
+    for (i = 0; i < sourceKeys.length; i++) {
+      key = sourceKeys[i];
+      if (excluded.indexOf(key) >= 0)
+        continue;
+      target[key] = source[key];
+    }
+    return target;
+  }
+  function _objectWithoutProperties(source, excluded) {
+    if (source == null)
+      return {};
+    var target = _objectWithoutPropertiesLoose(source, excluded);
+    var key, i;
+    if (Object.getOwnPropertySymbols) {
+      var sourceSymbolKeys = Object.getOwnPropertySymbols(source);
+      for (i = 0; i < sourceSymbolKeys.length; i++) {
+        key = sourceSymbolKeys[i];
+        if (excluded.indexOf(key) >= 0)
+          continue;
+        if (!Object.prototype.propertyIsEnumerable.call(source, key))
+          continue;
+        target[key] = source[key];
+      }
+    }
+    return target;
+  }
+  var sharedConfigResolver = {
+    target(value) {
+      if (value) {
+        return () => "current" in value ? value.current : value;
+      }
+      return void 0;
+    },
+    enabled(value = true) {
+      return value;
+    },
+    window(value = SUPPORT.isBrowser ? window : void 0) {
+      return value;
+    },
+    eventOptions({
+      passive = true,
+      capture = false
+    } = {}) {
+      return {
+        passive,
+        capture
+      };
+    },
+    transform(value) {
+      return value;
+    }
+  };
+  var _excluded = ["target", "eventOptions", "window", "enabled", "transform"];
+  function resolveWith(config = {}, resolvers) {
+    const result = {};
+    for (const [key, resolver] of Object.entries(resolvers)) {
+      switch (typeof resolver) {
+        case "function":
+          if (true) {
+            const r = resolver.call(result, config[key], key, config);
+            if (!Number.isNaN(r))
+              result[key] = r;
+          } else {
+            result[key] = resolver.call(result, config[key], key, config);
+          }
+          break;
+        case "object":
+          result[key] = resolveWith(config[key], resolver);
+          break;
+        case "boolean":
+          if (resolver)
+            result[key] = config[key];
+          break;
+      }
+    }
+    return result;
+  }
+  function parse(config, gestureKey) {
+    const _ref = config, {
+      target,
+      eventOptions,
+      window: window2,
+      enabled,
+      transform: transform2
+    } = _ref, rest = _objectWithoutProperties(_ref, _excluded);
+    const _config = {
+      shared: resolveWith({
+        target,
+        eventOptions,
+        window: window2,
+        enabled,
+        transform: transform2
+      }, sharedConfigResolver)
+    };
+    if (gestureKey) {
+      const resolver = ConfigResolverMap.get(gestureKey);
+      _config[gestureKey] = resolveWith(_objectSpread2({
+        shared: _config.shared
+      }, rest), resolver);
+    } else {
+      for (const key in rest) {
+        const resolver = ConfigResolverMap.get(key);
+        if (resolver) {
+          _config[key] = resolveWith(_objectSpread2({
+            shared: _config.shared
+          }, rest[key]), resolver);
+        } else if (true) {
+          if (!["drag", "pinch", "scroll", "wheel", "move", "hover"].includes(key)) {
+            if (key === "domTarget") {
+              throw Error(`[@use-gesture]: \`domTarget\` option has been renamed to \`target\`.`);
+            }
+            console.warn(`[@use-gesture]: Unknown config key \`${key}\` was used. Please read the documentation for further information.`);
+          }
+        }
+      }
+    }
+    return _config;
+  }
+  var EventStore = class {
+    constructor(ctrl, gestureKey) {
+      _defineProperty(this, "_listeners", /* @__PURE__ */ new Set());
+      this._ctrl = ctrl;
+      this._gestureKey = gestureKey;
+    }
+    add(element, device, action, handler, options) {
+      const listeners = this._listeners;
+      const type2 = toDomEventType(device, action);
+      const _options = this._gestureKey ? this._ctrl.config[this._gestureKey].eventOptions : {};
+      const eventOptions = _objectSpread2(_objectSpread2({}, _options), options);
+      element.addEventListener(type2, handler, eventOptions);
+      const remove2 = () => {
+        element.removeEventListener(type2, handler, eventOptions);
+        listeners.delete(remove2);
+      };
+      listeners.add(remove2);
+      return remove2;
+    }
+    clean() {
+      this._listeners.forEach((remove2) => remove2());
+      this._listeners.clear();
+    }
+  };
+  var TimeoutStore = class {
+    constructor() {
+      _defineProperty(this, "_timeouts", /* @__PURE__ */ new Map());
+    }
+    add(key, callback, ms = 140, ...args) {
+      this.remove(key);
+      this._timeouts.set(key, window.setTimeout(callback, ms, ...args));
+    }
+    remove(key) {
+      const timeout2 = this._timeouts.get(key);
+      if (timeout2)
+        window.clearTimeout(timeout2);
+    }
+    clean() {
+      this._timeouts.forEach((timeout2) => void window.clearTimeout(timeout2));
+      this._timeouts.clear();
+    }
+  };
+  var Controller = class {
+    constructor(handlers) {
+      _defineProperty(this, "gestures", /* @__PURE__ */ new Set());
+      _defineProperty(this, "_targetEventStore", new EventStore(this));
+      _defineProperty(this, "gestureEventStores", {});
+      _defineProperty(this, "gestureTimeoutStores", {});
+      _defineProperty(this, "handlers", {});
+      _defineProperty(this, "config", {});
+      _defineProperty(this, "pointerIds", /* @__PURE__ */ new Set());
+      _defineProperty(this, "touchIds", /* @__PURE__ */ new Set());
+      _defineProperty(this, "state", {
+        shared: {
+          shiftKey: false,
+          metaKey: false,
+          ctrlKey: false,
+          altKey: false
         }
       });
-      this.needsSwap = false;
-      this.fsQuad = new FullScreenQuad(null);
+      resolveGestures(this, handlers);
     }
-    render(renderer, writeBuffer, readBuffer, deltaTime, maskActive) {
-      if (maskActive)
-        renderer.state.buffers.stencil.setTest(false);
-      this.fsQuad.material = this.materialConvolution;
-      this.convolutionUniforms["tDiffuse"].value = readBuffer.texture;
-      this.convolutionUniforms["uImageIncrement"].value = BloomPass.blurX;
-      renderer.setRenderTarget(this.renderTargetX);
-      renderer.clear();
-      this.fsQuad.render(renderer);
-      this.convolutionUniforms["tDiffuse"].value = this.renderTargetX.texture;
-      this.convolutionUniforms["uImageIncrement"].value = BloomPass.blurY;
-      renderer.setRenderTarget(this.renderTargetY);
-      renderer.clear();
-      this.fsQuad.render(renderer);
-      this.fsQuad.material = this.materialCombine;
-      this.combineUniforms["tDiffuse"].value = this.renderTargetY.texture;
-      if (maskActive)
-        renderer.state.buffers.stencil.setTest(true);
-      renderer.setRenderTarget(readBuffer);
-      if (this.clear)
-        renderer.clear();
-      this.fsQuad.render(renderer);
+    setEventIds(event) {
+      if (isTouch(event)) {
+        this.touchIds = new Set(touchIds(event));
+        return this.touchIds;
+      } else if ("pointerId" in event) {
+        if (event.type === "pointerup" || event.type === "pointercancel")
+          this.pointerIds.delete(event.pointerId);
+        else if (event.type === "pointerdown")
+          this.pointerIds.add(event.pointerId);
+        return this.pointerIds;
+      }
+    }
+    applyHandlers(handlers, nativeHandlers) {
+      this.handlers = handlers;
+      this.nativeHandlers = nativeHandlers;
+    }
+    applyConfig(config, gestureKey) {
+      this.config = parse(config, gestureKey);
+    }
+    clean() {
+      this._targetEventStore.clean();
+      for (const key of this.gestures) {
+        this.gestureEventStores[key].clean();
+        this.gestureTimeoutStores[key].clean();
+      }
+    }
+    effect() {
+      if (this.config.shared.target)
+        this.bind();
+      return () => this._targetEventStore.clean();
+    }
+    bind(...args) {
+      const sharedConfig = this.config.shared;
+      const props = {};
+      let target;
+      if (sharedConfig.target) {
+        target = sharedConfig.target();
+        if (!target)
+          return;
+      }
+      if (sharedConfig.enabled) {
+        for (const gestureKey of this.gestures) {
+          const gestureConfig = this.config[gestureKey];
+          const bindFunction = bindToProps(props, gestureConfig.eventOptions, !!target);
+          if (gestureConfig.enabled) {
+            const Engine2 = EngineMap.get(gestureKey);
+            new Engine2(this, args, gestureKey).bind(bindFunction);
+          }
+        }
+        const nativeBindFunction = bindToProps(props, sharedConfig.eventOptions, !!target);
+        for (const eventKey in this.nativeHandlers) {
+          nativeBindFunction(eventKey, "", (event) => this.nativeHandlers[eventKey](_objectSpread2(_objectSpread2({}, this.state.shared), {}, {
+            event,
+            args
+          })), void 0, true);
+        }
+      }
+      for (const handlerProp in props) {
+        props[handlerProp] = chain(...props[handlerProp]);
+      }
+      if (!target)
+        return props;
+      for (const handlerProp in props) {
+        const {
+          device,
+          capture,
+          passive
+        } = parseProp(handlerProp);
+        this._targetEventStore.add(target, device, "", props[handlerProp], {
+          capture,
+          passive
+        });
+      }
     }
   };
-  var CombineShader = {
-    uniforms: {
-      "tDiffuse": { value: null },
-      "strength": { value: 1 }
-    },
-    vertexShader: `
-
-		varying vec2 vUv;
-
-		void main() {
-
-			vUv = uv;
-			gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
-
-		}`,
-    fragmentShader: `
-
-		uniform float strength;
-
-		uniform sampler2D tDiffuse;
-
-		varying vec2 vUv;
-
-		void main() {
-
-			vec4 texel = texture2D( tDiffuse, vUv );
-			gl_FragColor = strength * texel;
-
-		}`
+  function setupGesture(ctrl, gestureKey) {
+    ctrl.gestures.add(gestureKey);
+    ctrl.gestureEventStores[gestureKey] = new EventStore(ctrl, gestureKey);
+    ctrl.gestureTimeoutStores[gestureKey] = new TimeoutStore();
+  }
+  function resolveGestures(ctrl, internalHandlers) {
+    if (internalHandlers.drag)
+      setupGesture(ctrl, "drag");
+    if (internalHandlers.wheel)
+      setupGesture(ctrl, "wheel");
+    if (internalHandlers.scroll)
+      setupGesture(ctrl, "scroll");
+    if (internalHandlers.move)
+      setupGesture(ctrl, "move");
+    if (internalHandlers.pinch)
+      setupGesture(ctrl, "pinch");
+    if (internalHandlers.hover)
+      setupGesture(ctrl, "hover");
+  }
+  var bindToProps = (props, eventOptions, withPassiveOption) => (device, action, handler, options = {}, isNative = false) => {
+    var _options$capture, _options$passive;
+    const capture = (_options$capture = options.capture) !== null && _options$capture !== void 0 ? _options$capture : eventOptions.capture;
+    const passive = (_options$passive = options.passive) !== null && _options$passive !== void 0 ? _options$passive : eventOptions.passive;
+    let handlerProp = isNative ? device : toHandlerProp(device, action, capture);
+    if (withPassiveOption && passive)
+      handlerProp += "Passive";
+    props[handlerProp] = props[handlerProp] || [];
+    props[handlerProp].push(handler);
   };
-  BloomPass.blurX = new Vector2(1953125e-9, 0);
-  BloomPass.blurY = new Vector2(0, 1953125e-9);
+
+  // node_modules/@use-gesture/vanilla/dist/use-gesture-vanilla.esm.js
+  function _defineProperty2(obj, key, value) {
+    if (key in obj) {
+      Object.defineProperty(obj, key, {
+        value,
+        enumerable: true,
+        configurable: true,
+        writable: true
+      });
+    } else {
+      obj[key] = value;
+    }
+    return obj;
+  }
+  function ownKeys2(object, enumerableOnly) {
+    var keys = Object.keys(object);
+    if (Object.getOwnPropertySymbols) {
+      var symbols = Object.getOwnPropertySymbols(object);
+      enumerableOnly && (symbols = symbols.filter(function(sym) {
+        return Object.getOwnPropertyDescriptor(object, sym).enumerable;
+      })), keys.push.apply(keys, symbols);
+    }
+    return keys;
+  }
+  function _objectSpread22(target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i] != null ? arguments[i] : {};
+      i % 2 ? ownKeys2(Object(source), true).forEach(function(key) {
+        _defineProperty2(target, key, source[key]);
+      }) : Object.getOwnPropertyDescriptors ? Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)) : ownKeys2(Object(source)).forEach(function(key) {
+        Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key));
+      });
+    }
+    return target;
+  }
+  var Recognizer = class {
+    constructor(target, handlers, config, gestureKey, nativeHandlers) {
+      this._target = target;
+      this._gestureKey = gestureKey;
+      this._ctrl = new Controller(handlers);
+      this._ctrl.applyHandlers(handlers, nativeHandlers);
+      this._ctrl.applyConfig(_objectSpread22(_objectSpread22({}, config), {}, {
+        target
+      }), gestureKey);
+      this._ctrl.effect();
+    }
+    destroy() {
+      this._ctrl.clean();
+    }
+    setConfig(config) {
+      this._ctrl.clean();
+      this._ctrl.applyConfig(_objectSpread22(_objectSpread22({}, config), {}, {
+        target: this._target
+      }), this._gestureKey);
+      this._ctrl.effect();
+    }
+  };
+  var PinchGesture = function PinchGesture2(target, handler, config) {
+    registerAction(pinchAction);
+    return new Recognizer(target, {
+      pinch: handler
+    }, config || {}, "pinch");
+  };
 
   // federjs/FederView/BaseView.js
   var BaseView = class {
@@ -36115,6 +37323,8 @@ ${indentData}`);
             absolutePointer = { x: e.clientX, y: e.clientY };
           });
           let mouseDown = false, shift = false;
+          let mouseDownTime = 0;
+          let mouseUpTime = 0;
           window.addEventListener("keydown", (e) => {
             if (e.key === "Shift") {
               shift = true;
@@ -36124,23 +37334,31 @@ ${indentData}`);
             shift = false;
           });
           canvas.addEventListener("mousedown", (e) => {
+            console.log("mousedown");
             mouseDown = true;
             startX = e.clientX;
             startY = e.clientY;
-            console.log(`startX: ${startX}, startY: ${startY}`);
+            mouseDownTime = new Date().getTime();
           });
           window.addEventListener("mouseup", (e) => {
             mouseDown = false;
-          });
-          canvas.addEventListener("click", () => {
-            if (currentObject && currentObject.name.includes("")) {
-            }
+            mouseUpTime = new Date().getTime();
           });
           canvas.addEventListener("wheel", (e) => {
             if (!render3dView) {
               const zoom = -e.deltaY / 1e4;
               camera.zoom += zoom;
             }
+          });
+          const gesture = new PinchGesture(canvas, (state) => {
+            if (render3dView)
+              return;
+            const {
+              da: da2,
+              origin,
+              offset
+            } = state;
+            camera.zoom = offset[0];
           });
           const pick = () => {
             if (pointer.x < 0 || pointer.y < 0)
@@ -36157,6 +37375,8 @@ ${indentData}`);
             return id2;
           };
           const handlePick = () => {
+            if (mouseDown || shift)
+              return;
             const id2 = pick();
             const sphere = spheres[id2];
             const plane = planes[id2 - spheres.length];
@@ -36183,7 +37403,7 @@ ${indentData}`);
             });
           });
           canvas.addEventListener("click", () => {
-            if (render3dView && currentObject && currentObject.name.includes("plane")) {
+            if (render3dView && currentObject && currentObject.name.includes("plane") && !shift && mouseUpTime - mouseDownTime < 500) {
               render3dView = false;
               const layerId = currentObject.name.split("_")[1];
               pickingObjects.forEach((child) => {
@@ -36248,21 +37468,23 @@ ${indentData}`);
             now3 *= 1e-3;
             const deltaTime = now3 - then;
             then = now3;
-            currentObject = handlePick();
-            if (currentObject && currentObject.hnswData) {
-              infoPanel.innerHTML = `
+            if (!mouseDown && !shift) {
+              currentObject = handlePick();
+              if (currentObject && currentObject.hnswData) {
+                infoPanel.innerHTML = `
           <div><b>id:</b> ${currentObject.hnswData.id}</div>
           <div><b>distance:</b> ${currentObject.hnswData.dist}</div>
           `;
-            }
-            if (currentObject !== lastObject) {
-              if (lastObject && lastObject.name.includes("node")) {
-                lastObject.material.emissive.setHex(0);
-              } else if (lastObject && lastObject.name.includes("plane")) {
-                lastObject.material.color.setHex(22015);
               }
+              if (currentObject !== lastObject) {
+                if (lastObject && lastObject.name.includes("node")) {
+                  lastObject.material.emissive.setHex(0);
+                } else if (lastObject && lastObject.name.includes("plane")) {
+                  lastObject.material.color.setHex(22015);
+                }
+              }
+              lastObject = currentObject;
             }
-            lastObject = currentObject;
             composer.render(deltaTime);
             requestAnimationFrame(render);
           };

@@ -9,7 +9,8 @@ import { RenderPass } from './jsm/postprocessing/RenderPass';
 import { EffectComposer } from './jsm/postprocessing/EffectComposer';
 import { ShaderPass } from './jsm/postprocessing/ShaderPass';
 import { UnrealBloomPass } from './jsm/postprocessing/UnrealBloomPass';
-import { BloomPass } from './jsm/postprocessing/BloomPass';
+import { PinchGesture } from '@use-gesture/vanilla';
+
 // import { VIEW_TYPE } from 'Types';
 
 export default class BaseView {
@@ -360,6 +361,8 @@ export default class BaseView {
       });
       let mouseDown = false,
         shift = false;
+      let mouseDownTime = 0;
+      let mouseUpTime = 0;
       window.addEventListener('keydown', (e) => {
         //check shift key is pressed no keycode
         if (e.key === 'Shift') {
@@ -370,17 +373,15 @@ export default class BaseView {
         shift = false;
       });
       canvas.addEventListener('mousedown', (e) => {
+        console.log('mousedown');
         mouseDown = true;
         startX = e.clientX;
         startY = e.clientY;
-        console.log(`startX: ${startX}, startY: ${startY}`);
+        mouseDownTime = new Date().getTime();
       });
       window.addEventListener('mouseup', (e) => {
         mouseDown = false;
-      });
-      canvas.addEventListener('click', () => {
-        if (currentObject && currentObject.name.includes('')) {
-        }
+        mouseUpTime = new Date().getTime();
       });
       //listen to wheel event
       canvas.addEventListener('wheel', (e) => {
@@ -390,6 +391,39 @@ export default class BaseView {
           camera.zoom += zoom;
         }
       });
+
+      //pinch to zoom
+
+      const gesture = new PinchGesture(canvas, (state) => {
+        if (render3dView) return;
+        const {
+          da, // [d,a] absolute distance and angle of the two pointers
+          origin, // coordinates of the center between the two touch event
+          offset, // [scale, angle] offsets (starts withs scale=1)
+        } = state;
+        camera.zoom = offset[0];
+      });
+
+      // let pinchStart = undefined;
+      // canvas.addEventListener('touchstart', (e) => {
+      //   e.preventDefault()
+      //   console.log('touchstart');
+      //   if (e.touches.length === 2) {
+      //     pinchStart = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+      //     console.log('touchstart',pinchStart);
+      //   }
+
+      // });
+      // canvas.addEventListener('touchmove', (e) => {
+      //   e.preventDefault()
+      //   console.log('touchmove');
+      //   if (e.touches.length === 2) {
+      //     const zoom =
+      //       Math.abs(e.touches[0].clientX - e.touches[1].clientX) / pinchStart;
+      //     camera.zoom == zoom;
+      //     console.log('touchmove',zoom);
+      //   }
+      // });
 
       const pick = () => {
         if (pointer.x < 0 || pointer.y < 0) return -1;
@@ -425,6 +459,7 @@ export default class BaseView {
       };
 
       const handlePick = () => {
+        if (mouseDown || shift) return;
         const id = pick();
         const sphere = spheres[id];
         const plane = planes[id - spheres.length];
@@ -459,7 +494,9 @@ export default class BaseView {
         if (
           render3dView &&
           currentObject &&
-          currentObject.name.includes('plane')
+          currentObject.name.includes('plane') &&
+          !shift &&
+          mouseUpTime - mouseDownTime < 500
         ) {
           render3dView = false;
           //get layer id
@@ -561,22 +598,24 @@ export default class BaseView {
         const deltaTime = now - then;
         then = now;
 
-        currentObject = handlePick();
-        if (currentObject && currentObject.hnswData) {
-          // console.log(currentObject.hnswData);
-          infoPanel.innerHTML = /*html*/ `
+        if (!mouseDown && !shift) {
+          currentObject = handlePick();
+          if (currentObject && currentObject.hnswData) {
+            // console.log(currentObject.hnswData);
+            infoPanel.innerHTML = /*html*/ `
           <div><b>id:</b> ${currentObject.hnswData.id}</div>
           <div><b>distance:</b> ${currentObject.hnswData.dist}</div>
           `;
-        }
-        if (currentObject !== lastObject) {
-          if (lastObject && lastObject.name.includes('node')) {
-            lastObject.material.emissive.setHex(0x000000);
-          } else if (lastObject && lastObject.name.includes('plane')) {
-            lastObject.material.color.setHex(0x0055ff);
           }
+          if (currentObject !== lastObject) {
+            if (lastObject && lastObject.name.includes('node')) {
+              lastObject.material.emissive.setHex(0x000000);
+            } else if (lastObject && lastObject.name.includes('plane')) {
+              lastObject.material.color.setHex(0x0055ff);
+            }
+          }
+          lastObject = currentObject;
         }
-        lastObject = currentObject;
 
         //render the scene
         composer.render(deltaTime);

@@ -40,6 +40,18 @@
   resolved "https://registry.npmmirror.com/@types/istanbul-lib-coverage/-/istanbul-lib-coverage-2.0.4.tgz#8467d4b3c087805d63580480890791277ce35c44"
   integrity sha512-z/QT1XN4K4KYuslS23k62yDIDLwLFkzxOuMplDtObz0+y7VqJCaO2o+SPwHCvLFZh7xazvvoor2tA/hPz9ee7g==
 
+"@use-gesture/core@10.2.17":
+  version "10.2.17"
+  resolved "https://registry.npmmirror.com/@use-gesture/core/-/core-10.2.17.tgz#dc78913cd5d105217c3f1d1c16a32ad6426a00ba"
+  integrity sha512-62hCybe4x6oGZ1/JA9gSYIdghV1FqxCdvYWt9SqCEAAikwT1OmVl2Q/Uu8CP636L57D+DfXtw6PWM+fdhr4oJQ==
+
+"@use-gesture/vanilla@^10.2.17":
+  version "10.2.17"
+  resolved "https://registry.npmmirror.com/@use-gesture/vanilla/-/vanilla-10.2.17.tgz#a8c668cfaaff0bbcca1a8a4f71858a6994c87139"
+  integrity sha512-bIMmlO5TAe0/abvO4TIgcXhgWo/HQoyAgPZEf4iOnu3SWZSoqCDBALKmK/vkX6McEjm0kFlceJgTSnHYDAcApg==
+  dependencies:
+    "@use-gesture/core" "10.2.17"
+
 acorn@^7.1.1:
   version "7.4.1"
   resolved "https://registry.npmmirror.com/acorn/-/acorn-7.4.1.tgz#feaed255973d2e77555b83dbc08851a6c63520fa"
