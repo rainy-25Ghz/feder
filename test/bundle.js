@@ -35915,7 +35915,6 @@ ${indentData}`);
         canvas.height = this.clientHeight;
         dom.appendChild(canvas);
         const searchViewLayoutData = yield this.searchViewHandler(searchRes);
-        console.log(searchViewLayoutData);
         const infoPanel = document.createElement("div");
         infoPanel.style.color = "#fff";
         const setup3d = () => {
@@ -36108,12 +36107,39 @@ ${indentData}`);
           };
           setupPickingObjects();
           let pointer = { x: -1, y: -1 };
+          let absolutePointer = { x: -1, y: -1 };
           let lastObject = null, currentObject = null;
+          let startX = null, startY = null;
           canvas.addEventListener("mousemove", (e) => {
             pointer = { x: e.offsetX, y: e.offsetY };
+            absolutePointer = { x: e.clientX, y: e.clientY };
+          });
+          let mouseDown = false, shift = false;
+          window.addEventListener("keydown", (e) => {
+            if (e.key === "Shift") {
+              shift = true;
+            }
+          });
+          window.addEventListener("keyup", (e) => {
+            shift = false;
+          });
+          canvas.addEventListener("mousedown", (e) => {
+            mouseDown = true;
+            startX = e.clientX;
+            startY = e.clientY;
+            console.log(`startX: ${startX}, startY: ${startY}`);
+          });
+          window.addEventListener("mouseup", (e) => {
+            mouseDown = false;
           });
           canvas.addEventListener("click", () => {
             if (currentObject && currentObject.name.includes("")) {
+            }
+          });
+          canvas.addEventListener("wheel", (e) => {
+            if (!render3dView) {
+              const zoom = -e.deltaY / 1e4;
+              camera.zoom += zoom;
             }
           });
           const pick = () => {
@@ -36147,8 +36173,7 @@ ${indentData}`);
           const returnButton = document.createElement("button");
           let render3dView = true;
           returnButton.innerText = "return to 3d view";
-          returnButton.onclick = () => {
-            lastObject = null;
+          returnButton.addEventListener("click", () => {
             render3dView = true;
             scene.traverse((child) => {
               child.visible = true;
@@ -36156,7 +36181,7 @@ ${indentData}`);
             pickingScene.traverse((child) => {
               child.visible = true;
             });
-          };
+          });
           canvas.addEventListener("click", () => {
             if (render3dView && currentObject && currentObject.name.includes("plane")) {
               render3dView = false;
@@ -36182,25 +36207,51 @@ ${indentData}`);
             }
           });
           const controls = new OrbitControls(camera, renderer.domElement);
+          controls.enableDamping = false;
           let then = 0;
           dom.appendChild(returnButton);
           dom.appendChild(infoPanel);
           const render = (now3) => {
             if (render3dView) {
+              controls.enabled = true;
               returnButton.disabled = true;
+              if (lastCam) {
+                pickingObjects.forEach((child) => {
+                  child.visible = true;
+                });
+                camera.position.set(lastCam.position.x, lastCam.position.y, lastCam.position.z);
+                camera.rotation.set(lastCam.rotation.x, lastCam.rotation.y, lastCam.rotation.z);
+                camera.updateProjectionMatrix();
+                controls.update();
+                lastCam = null;
+              }
             } else {
+              controls.enabled = false;
               returnButton.disabled = false;
+              lastCam = camera.clone();
+              if (mouseDown && shift && startX && startY) {
+                let dx = absolutePointer.x - startX;
+                let dy = absolutePointer.y - startY;
+                let cameraX = camera.position.x + dx * 10;
+                let cameraY = camera.position.y;
+                let cameraZ = camera.position.z + dy * 10;
+                startX = absolutePointer.x;
+                startY = absolutePointer.y;
+                console.log(`cameraX: ${cameraX}, cameraY: ${cameraY}, cameraZ: ${cameraZ}`);
+                camera.position.set(cameraX, cameraY, cameraZ);
+                camera.lookAt(cameraX, cameraY + 100, cameraZ);
+              } else {
+                camera.lookAt(camera.position.x, camera.position.y + 100, camera.position.z);
+              }
+              camera.updateProjectionMatrix();
             }
             now3 *= 1e-3;
             const deltaTime = now3 - then;
             then = now3;
-            controls.update();
             currentObject = handlePick();
             if (currentObject && currentObject.hnswData) {
-              console.log(currentObject.hnswData);
               infoPanel.innerHTML = `
           <div><b>id:</b> ${currentObject.hnswData.id}</div>
-          <div><b>type:</b> ${currentObject.hnswData.type}</div>
           <div><b>distance:</b> ${currentObject.hnswData.dist}</div>
           `;
             }

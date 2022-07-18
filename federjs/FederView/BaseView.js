@@ -60,13 +60,12 @@ export default class BaseView {
     dom.appendChild(canvas);
 
     const searchViewLayoutData = await this.searchViewHandler(searchRes);
-    console.log(searchViewLayoutData);
+    // console.log(searchViewLayoutData);
 
     //setup info panel
     const infoPanel = document.createElement('div');
     //set white font color
     infoPanel.style.color = '#fff';
-    
 
     const setup3d = () => {
       const scene = new THREE.Scene();
@@ -347,15 +346,48 @@ export default class BaseView {
       setupPickingObjects();
       //get pointer coordinates in canvas
       let pointer = { x: -1, y: -1 };
+      let absolutePointer = { x: -1, y: -1 };
       let lastObject = null,
         currentObject = null;
+      let startX = null,
+        startY = null;
 
       //setup the mouse events
       canvas.addEventListener('mousemove', (e) => {
         pointer = { x: e.offsetX, y: e.offsetY };
+        //get absolute position
+        absolutePointer = { x: e.clientX, y: e.clientY };
+      });
+      let mouseDown = false,
+        shift = false;
+      window.addEventListener('keydown', (e) => {
+        //check shift key is pressed no keycode
+        if (e.key === 'Shift') {
+          shift = true;
+        }
+      });
+      window.addEventListener('keyup', (e) => {
+        shift = false;
+      });
+      canvas.addEventListener('mousedown', (e) => {
+        mouseDown = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        console.log(`startX: ${startX}, startY: ${startY}`);
+      });
+      window.addEventListener('mouseup', (e) => {
+        mouseDown = false;
       });
       canvas.addEventListener('click', () => {
         if (currentObject && currentObject.name.includes('')) {
+        }
+      });
+      //listen to wheel event
+      canvas.addEventListener('wheel', (e) => {
+        if (!render3dView) {
+          //set the camera zoom level
+          const zoom = -e.deltaY / 10000;
+          camera.zoom += zoom;
         }
       });
 
@@ -413,8 +445,7 @@ export default class BaseView {
       const returnButton = document.createElement('button');
       let render3dView = true;
       returnButton.innerText = 'return to 3d view';
-      returnButton.onclick = () => {
-        lastObject = null;
+      returnButton.addEventListener('click', () => {
         render3dView = true;
         scene.traverse((child) => {
           child.visible = true;
@@ -422,7 +453,7 @@ export default class BaseView {
         pickingScene.traverse((child) => {
           child.visible = true;
         });
-      };
+      });
 
       canvas.addEventListener('click', () => {
         if (
@@ -460,30 +491,81 @@ export default class BaseView {
 
       //setup the controls
       const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = false;
       let then = 0;
       dom.appendChild(returnButton);
       dom.appendChild(infoPanel);
 
       const render = (now) => {
         if (render3dView) {
+          controls.enabled = true;
           //disable the button
           returnButton.disabled = true;
+          //recover the camera
+          if (lastCam) {
+            pickingObjects.forEach((child) => {
+              child.visible = true;
+            });
+            //recover the camera
+            camera.position.set(
+              lastCam.position.x,
+              lastCam.position.y,
+              lastCam.position.z
+            );
+            camera.rotation.set(
+              lastCam.rotation.x,
+              lastCam.rotation.y,
+              lastCam.rotation.z
+            );
+            camera.updateProjectionMatrix();
+            controls.update();
+
+            lastCam = null;
+          }
         } else {
+          //disable the controls
+          controls.enabled = false;
+          // controls.enableDamping = false;
+          // controls.enablePan = false;
+          // controls.enableRotate = false;
+          // controls.enableZoom = true;
           //enable the button
           returnButton.disabled = false;
+          lastCam = camera.clone();
+          if (mouseDown && shift && startX && startY) {
+            let dx = absolutePointer.x - startX;
+            let dy = absolutePointer.y - startY;
+            let cameraX = camera.position.x + dx * 10;
+            let cameraY = camera.position.y;
+            let cameraZ = camera.position.z + dy * 10;
+            startX = absolutePointer.x;
+            startY = absolutePointer.y;
+            console.log(
+              `cameraX: ${cameraX}, cameraY: ${cameraY}, cameraZ: ${cameraZ}`
+            );
+            camera.position.set(cameraX, cameraY, cameraZ);
+            camera.lookAt(cameraX, cameraY + 100, cameraZ);
+
+            // camera.lookAt(dx, 100, dy);
+          } else {
+            camera.lookAt(
+              camera.position.x,
+              camera.position.y + 100,
+              camera.position.z
+            );
+          }
+
+          camera.updateProjectionMatrix();
         }
         now *= 0.001;
         const deltaTime = now - then;
         then = now;
-        //update the controls
-        controls.update();
 
         currentObject = handlePick();
         if (currentObject && currentObject.hnswData) {
-          console.log(currentObject.hnswData);
+          // console.log(currentObject.hnswData);
           infoPanel.innerHTML = /*html*/ `
           <div><b>id:</b> ${currentObject.hnswData.id}</div>
-          <div><b>type:</b> ${currentObject.hnswData.type}</div>
           <div><b>distance:</b> ${currentObject.hnswData.dist}</div>
           `;
         }
