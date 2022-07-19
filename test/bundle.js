@@ -37389,11 +37389,17 @@ This message will only appear in development mode.`);
             }
             return sphere || plane || line;
           };
-          let lastCam = null;
+          let lastCam = null, cam3dView = null;
           const returnButton = document.createElement("button");
           let render3dView = true;
           returnButton.innerText = "return to 3d view";
           returnButton.addEventListener("click", () => {
+            if (lastCam) {
+              linearCameraAnimation(camera, cam3dView, 500, () => {
+                requestAnimationFrame(render);
+              });
+            }
+            returnButton.disabled = true;
             render3dView = true;
             scene.traverse((child) => {
               child.visible = true;
@@ -37424,6 +37430,12 @@ This message will only appear in development mode.`);
                   line.visible = false;
                 }
               });
+              let endCam = camera.clone();
+              endCam.lookAt(endCam.position.x, endCam.position.y + 100, endCam.position.z);
+              cam3dView = camera.clone();
+              linearCameraAnimation(camera, endCam, 500, () => {
+                requestAnimationFrame(render);
+              });
             }
           });
           const controls = new OrbitControls(camera, renderer.domElement);
@@ -37431,17 +37443,56 @@ This message will only appear in development mode.`);
           let then = 0;
           dom.appendChild(returnButton);
           dom.appendChild(infoPanel);
+          let inAnimation = false;
+          const linearCameraAnimation = (startCam, endCam, duration = 2e3, callback = () => {
+          }) => {
+            const start2 = {
+              position: startCam.position.clone(),
+              quaternion: startCam.quaternion.clone(),
+              zoom: startCam.zoom
+            };
+            const end = {
+              position: endCam.position.clone(),
+              quaternion: endCam.quaternion.clone(),
+              zoom: endCam.zoom
+            };
+            let startTime = new Date().getTime();
+            let endTime = startTime + duration;
+            const startAnimation = () => {
+              inAnimation = true;
+              startTime = new Date().getTime();
+              endTime = startTime + duration;
+              animate();
+            };
+            const animate = () => {
+              const now3 = new Date().getTime();
+              const t = (now3 - startTime) / duration;
+              if (t >= 1) {
+                camera.position.copy(end.position);
+                camera.quaternion.copy(end.quaternion);
+                camera.zoom = end.zoom;
+                inAnimation = false;
+                if (callback)
+                  callback();
+                return;
+              }
+              camera.position.copy(start2.position.clone().lerp(end.position, t));
+              camera.quaternion.copy(start2.quaternion.clone().slerp(end.quaternion, t));
+              camera.zoom = start2.zoom + (end.zoom - start2.zoom) * t;
+              composer.render();
+              requestAnimationFrame(animate);
+            };
+            startAnimation();
+          };
           const render = (now3) => {
+            if (inAnimation)
+              return;
             if (render3dView) {
               controls.enabled = true;
-              returnButton.disabled = true;
               if (lastCam) {
                 pickingObjects.forEach((child) => {
                   child.visible = true;
                 });
-                camera.position.set(lastCam.position.x, lastCam.position.y, lastCam.position.z);
-                camera.rotation.set(lastCam.rotation.x, lastCam.rotation.y, lastCam.rotation.z);
-                camera.updateProjectionMatrix();
                 controls.update();
                 lastCam = null;
               }
@@ -37484,6 +37535,9 @@ This message will only appear in development mode.`);
                 }
               }
               lastObject = currentObject;
+            }
+            if (render3dView) {
+              cam3dView = camera.clone();
             }
             composer.render(deltaTime);
             requestAnimationFrame(render);

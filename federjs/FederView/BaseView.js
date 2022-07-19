@@ -404,27 +404,6 @@ export default class BaseView {
         camera.zoom = offset[0];
       });
 
-      // let pinchStart = undefined;
-      // canvas.addEventListener('touchstart', (e) => {
-      //   e.preventDefault()
-      //   console.log('touchstart');
-      //   if (e.touches.length === 2) {
-      //     pinchStart = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
-      //     console.log('touchstart',pinchStart);
-      //   }
-
-      // });
-      // canvas.addEventListener('touchmove', (e) => {
-      //   e.preventDefault()
-      //   console.log('touchmove');
-      //   if (e.touches.length === 2) {
-      //     const zoom =
-      //       Math.abs(e.touches[0].clientX - e.touches[1].clientX) / pinchStart;
-      //     camera.zoom == zoom;
-      //     console.log('touchmove',zoom);
-      //   }
-      // });
-
       const pick = () => {
         if (pointer.x < 0 || pointer.y < 0) return -1;
         const pixelRatio = renderer.getPixelRatio();
@@ -475,12 +454,22 @@ export default class BaseView {
         return sphere || plane || line;
       };
 
-      let lastCam = null;
+      let lastCam = null,
+        cam3dView = null;
       //create a return button
       const returnButton = document.createElement('button');
       let render3dView = true;
       returnButton.innerText = 'return to 3d view';
       returnButton.addEventListener('click', () => {
+        if (lastCam) {
+          // console.log('lastCam', lastCam.position, lastCam.rotation);
+          // console.log('camera', camera.position, camera.rotation);
+          linearCameraAnimation(camera,cam3dView, 500, () => {
+            requestAnimationFrame(render);
+          });
+        }
+        //disable the button
+        returnButton.disabled = true;
         render3dView = true;
         scene.traverse((child) => {
           child.visible = true;
@@ -523,6 +512,17 @@ export default class BaseView {
               line.visible = false;
             }
           });
+          let endCam = camera.clone();
+          endCam.lookAt(
+            endCam.position.x,
+            endCam.position.y + 100,
+            endCam.position.z
+          );
+          cam3dView = camera.clone();
+
+          linearCameraAnimation(camera, endCam, 500, () => {
+            requestAnimationFrame(render);
+          });
         }
       });
 
@@ -533,28 +533,85 @@ export default class BaseView {
       dom.appendChild(returnButton);
       dom.appendChild(infoPanel);
 
+      let inAnimation = false; //check if in animation
+      /**
+       *
+       * @param {THREE.Camera} startCam
+       * @param {THREE.Camera} endCam
+       * @param {number} duration
+       * @param {function} onComplete
+       * @returns
+       */
+      const linearCameraAnimation = (
+        startCam,
+        endCam,
+        duration = 2000,
+        callback = () => {}
+      ) => {
+        const start = {
+          position: startCam.position.clone(),
+          quaternion: startCam.quaternion.clone(),
+          zoom: startCam.zoom,
+        };
+        const end = {
+          position: endCam.position.clone(),
+          quaternion: endCam.quaternion.clone(),
+          zoom: endCam.zoom,
+        };
+        let startTime = new Date().getTime();
+        let endTime = startTime + duration;
+        const startAnimation = () => {
+          inAnimation = true;
+          startTime = new Date().getTime();
+          endTime = startTime + duration;
+          animate();
+        };
+        const animate = () => {
+          const now = new Date().getTime();
+          const t = (now - startTime) / duration;
+          if (t >= 1) {
+            camera.position.copy(end.position);
+            camera.quaternion.copy(end.quaternion);
+            camera.zoom = end.zoom;
+            inAnimation = false;
+            if (callback) callback();
+            return;
+          }
+          camera.position.copy(start.position.clone().lerp(end.position, t));
+          camera.quaternion.copy(
+            start.quaternion.clone().slerp(end.quaternion, t)
+          );
+          camera.zoom = start.zoom + (end.zoom - start.zoom) * t;
+          composer.render();
+          requestAnimationFrame(animate);
+        };
+        startAnimation();
+      };
+
       const render = (now) => {
+        if (inAnimation) return;
         if (render3dView) {
           controls.enabled = true;
-          //disable the button
-          returnButton.disabled = true;
+
           //recover the camera
           if (lastCam) {
             pickingObjects.forEach((child) => {
               child.visible = true;
             });
-            //recover the camera
-            camera.position.set(
-              lastCam.position.x,
-              lastCam.position.y,
-              lastCam.position.z
-            );
-            camera.rotation.set(
-              lastCam.rotation.x,
-              lastCam.rotation.y,
-              lastCam.rotation.z
-            );
-            camera.updateProjectionMatrix();
+            // console.log('lastCam', lastCam.position, lastCam.rotation);
+            // console.log('camera', camera.position, camera.rotation);
+            // //recover the camera
+            // camera.position.set(
+            //   lastCam.position.x,
+            //   lastCam.position.y,
+            //   lastCam.position.z
+            // );
+            // camera.rotation.set(
+            //   lastCam.rotation.x,
+            //   lastCam.rotation.y,
+            //   lastCam.rotation.z
+            // );
+            // camera.updateProjectionMatrix();
             controls.update();
 
             lastCam = null;
@@ -616,7 +673,9 @@ export default class BaseView {
           }
           lastObject = currentObject;
         }
-
+       if(render3dView) {
+        cam3dView=camera.clone();
+       }
         //render the scene
         composer.render(deltaTime);
 
