@@ -464,7 +464,7 @@ export default class BaseView {
         if (lastCam) {
           // console.log('lastCam', lastCam.position, lastCam.rotation);
           // console.log('camera', camera.position, camera.rotation);
-          linearCameraAnimation(camera,cam3dView, 500, () => {
+          linearCameraAnimation(camera, cam3dView, 500, () => {
             requestAnimationFrame(render);
           });
         }
@@ -673,9 +673,10 @@ export default class BaseView {
           }
           lastObject = currentObject;
         }
-       if(render3dView) {
-        cam3dView=camera.clone();
-       }
+        if (render3dView) {
+          cam3dView = camera.clone();
+        }
+        cam3dView.zoom = camera.zoom;
         //render the scene
         composer.render(deltaTime);
 

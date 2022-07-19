@@ -37539,6 +37539,7 @@ This message will only appear in development mode.`);
             if (render3dView) {
               cam3dView = camera.clone();
             }
+            cam3dView.zoom = camera.zoom;
             composer.render(deltaTime);
             requestAnimationFrame(render);
           };
