@@ -37238,6 +37238,8 @@ This message will only appear in development mode.`);
                 });
                 const line = new Line(lineGeometry, material);
                 line.name = `layer_${i}_link_${j}`;
+                line.sourcePt = points[0];
+                line.targetPt = points[1];
                 if (opacity > 0)
                   lines.push(line);
               }
@@ -37253,15 +37255,37 @@ This message will only appear in development mode.`);
                 });
                 const line = new Line(lineGeometry, material);
                 line.name = `link_up`;
+                line.sourcePt = finePt;
+                line.targetPt = entryPt;
                 lines.push(line);
               }
               z0 += -400;
             }
           };
           setupLines();
+          function makeSphere(x3, y4, z, radius, color2, opacity) {
+            const geometry = new SphereGeometry(radius, 32, 32);
+            const material = new MeshPhongMaterial({
+              color: color2
+            });
+            const sphere = new Mesh(geometry, material);
+            sphere.position.set(x3, z, y4);
+            return sphere;
+          }
           scene.add(...spheres);
           scene.add(...planes);
           scene.add(...lines);
+          const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const play = () => __async(this, null, function* () {
+            lines.forEach((line) => {
+              line.visible = false;
+            });
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              line.visible = true;
+              yield delay(200);
+            }
+          });
           const composer = new EffectComposer(renderer);
           const setupPostProcessing = () => {
             const renderPass = new RenderPass(scene, camera);
@@ -37443,6 +37467,10 @@ This message will only appear in development mode.`);
           let then = 0;
           dom.appendChild(returnButton);
           dom.appendChild(infoPanel);
+          const playButton = document.createElement("button");
+          playButton.innerText = "play";
+          playButton.addEventListener("click", play);
+          dom.appendChild(playButton);
           let inAnimation = false;
           const linearCameraAnimation = (startCam, endCam, duration = 2e3, callback = () => {
           }) => {

@@ -199,7 +199,6 @@ export default class BaseView {
           for (let j = 0; j < links.length; j++) {
             const link = links[j];
             const { source, target } = link;
-
             //create points array
             const points = [];
             points.push(new THREE.Vector3(source.x, z0, source.y));
@@ -233,6 +232,8 @@ export default class BaseView {
             //create a new line
             const line = new THREE.Line(lineGeometry, material);
             line.name = `layer_${i}_link_${j}`;
+            line.sourcePt = points[0];
+            line.targetPt = points[1];
             if (opacity > 0) lines.push(line);
           }
           if (i > 0) {
@@ -247,6 +248,8 @@ export default class BaseView {
             });
             const line = new THREE.Line(lineGeometry, material);
             line.name = `link_up`;
+            line.sourcePt = finePt;
+            line.targetPt = entryPt;
             lines.push(line);
           }
           z0 += -400;
@@ -254,9 +257,51 @@ export default class BaseView {
       };
       setupLines();
 
+      function makeSphere(x, y, z, radius, color, opacity) {
+        const geometry = new THREE.SphereGeometry(radius, 32, 32);
+        const material = new THREE.MeshPhongMaterial({
+          color,
+        });
+        const sphere = new THREE.Mesh(geometry, material);
+        sphere.position.set(x, z, y);
+        return sphere;
+      }
       scene.add(...spheres);
       scene.add(...planes);
       scene.add(...lines);
+      const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+      const play = async () => {
+        //delete all objects in the scene
+        lines.forEach((line) => {
+          line.visible = false;
+        });
+
+        // const startShere = makeSphere(
+        //   lines[0].sourcePt.x,
+        //   lines[0].sourcePt.z,
+        //   lines[0].sourcePt.y,
+        //   20,
+        //   0x0077ff,
+        //   1
+        // );
+        // scene.add(startShere);
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i];
+          line.visible = true;
+          // const sphere = makeSphere(
+          //   line.targetPt.x,
+
+          //   line.targetPt.z,
+          //   line.targetPt.y,
+          //   20,
+          //   0x0077ff,
+          //   1
+          // );
+          // scene.add(line);
+          // scene.add(sphere);
+          await delay(200);
+        }
+      };
 
       const composer = new EffectComposer(renderer);
       const setupPostProcessing = () => {
@@ -532,6 +577,10 @@ export default class BaseView {
       let then = 0;
       dom.appendChild(returnButton);
       dom.appendChild(infoPanel);
+      const playButton = document.createElement('button');
+      playButton.innerText = 'play';
+      playButton.addEventListener('click', play);
+      dom.appendChild(playButton);
 
       let inAnimation = false; //check if in animation
       /**
