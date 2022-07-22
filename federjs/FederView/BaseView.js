@@ -326,6 +326,7 @@ export default class BaseView {
         const searchSteps = e.target.value;
         jump(searchSteps);
       });
+      
 
       const play = async () => {
         //hide all lines and spheres in the scene
@@ -336,7 +337,8 @@ export default class BaseView {
           sphere.visible = false;
         });
         for (let i = 0; i < lines.length; i++) {
-          jump(i);
+          slider.value = i;
+          slider.dispatchEvent(new Event('input'));
           await delay(300);
         }
         // for (let i = 0; i < lines.length; i++) {

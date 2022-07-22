@@ -37334,7 +37334,8 @@ This message will only appear in development mode.`);
               sphere.visible = false;
             });
             for (let i = 0; i < lines.length; i++) {
-              jump(i);
+              slider.value = i;
+              slider.dispatchEvent(new Event("input"));
               yield delay(300);
             }
           });
