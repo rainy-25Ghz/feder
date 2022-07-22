@@ -37123,10 +37123,12 @@ This message will only appear in development mode.`);
         canvas.height = this.clientHeight;
         dom.appendChild(canvas);
         const searchViewLayoutData = yield this.searchViewHandler(searchRes);
+        console.log(searchViewLayoutData);
         const infoPanel = document.createElement("div");
         infoPanel.style.color = "#fff";
         const setup3d = () => {
           const scene = new Scene();
+          let id2sphereIdx = /* @__PURE__ */ new Map();
           let camera = new OrthographicCamera(canvas.clientWidth, canvas.clientWidth * -1, canvas.clientHeight, canvas.clientHeight * -1, -4e3, 4e3);
           camera.position.z = -10;
           camera.position.y = 1;
@@ -37146,11 +37148,18 @@ This message will only appear in development mode.`);
           let maxX = 0, maxY = 0, minX = 0, minY = 0;
           const setupSpheres = () => {
             let z0 = 0;
+            let count = 0;
             for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
               const { entryIds, fineIds, links, nodes } = searchViewLayoutData.visData[i];
               const { id2forcePos } = searchViewLayoutData;
-              entryPts.unshift(new Vector3(id2forcePos[entryIds[0]][0], z0, id2forcePos[entryIds[0]][1]));
-              finePts.unshift(new Vector3(id2forcePos[fineIds[0]][0], z0, id2forcePos[fineIds[0]][1]));
+              entryPts.unshift([
+                new Vector3(id2forcePos[entryIds[0]][0], z0, id2forcePos[entryIds[0]][1]),
+                entryIds[0]
+              ]);
+              finePts.unshift([
+                new Vector3(id2forcePos[fineIds[0]][0], z0, id2forcePos[fineIds[0]][1]),
+                fineIds[0]
+              ]);
               for (let j = 0; j < nodes.length; j++) {
                 const node = nodes[j];
                 const { id: id2, x: x3, y: y4, type: type2 } = node;
@@ -37180,6 +37189,8 @@ This message will only appear in development mode.`);
                 minY = Math.min(minY, y4);
                 spheres.push(sphere);
                 sphere.name = `layer_${i}_node_${j}`;
+                id2sphereIdx.set(`layer_${i}_nodeId_${node.id}`, count);
+                count++;
               }
               z0 += -400;
             }
@@ -37209,6 +37220,7 @@ This message will only appear in development mode.`);
           let lines = [];
           const setupLines = () => {
             let z0 = 0;
+            console.log(entryPts, finePts);
             for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
               const { links } = searchViewLayoutData.visData[i];
               for (let j = 0; j < links.length; j++) {
@@ -37234,18 +37246,25 @@ This message will only appear in development mode.`);
                   color: color2,
                   opacity,
                   linewidth: 2,
-                  transparent: true
+                  transparent: true,
+                  depthWrite: true
                 });
                 const line = new Line(lineGeometry, material);
                 line.name = `layer_${i}_link_${j}`;
-                line.sourcePt = points[0];
-                line.targetPt = points[1];
+                let sourceId = source.nodeId;
+                let targetId = target.nodeId;
+                if (sourceId && targetId) {
+                  line.sourceId = sourceId;
+                  line.targetId = targetId;
+                }
                 if (opacity > 0)
                   lines.push(line);
               }
               if (i > 0) {
-                const finePt = finePts[i];
-                const entryPt = entryPts[i - 1];
+                const sourceId = finePts[i][1];
+                const targetId = entryPts[i - 1][1];
+                const finePt = finePts[i][0];
+                const entryPt = entryPts[i - 1][0];
                 const lineGeometry = new BufferGeometry().setFromPoints([
                   entryPt,
                   finePt
@@ -37254,36 +37273,56 @@ This message will only appear in development mode.`);
                   color: new Color2(15658496)
                 });
                 const line = new Line(lineGeometry, material);
-                line.name = `link_up`;
-                line.sourcePt = finePt;
-                line.targetPt = entryPt;
+                line.name = `layer_${i}_link_up`;
+                if (sourceId && targetId) {
+                  line.sourceId = sourceId;
+                  line.targetId = targetId;
+                  console.log(sourceId, targetId);
+                }
                 lines.push(line);
               }
               z0 += -400;
             }
           };
           setupLines();
-          function makeSphere(x3, y4, z, radius, color2, opacity) {
-            const geometry = new SphereGeometry(radius, 32, 32);
-            const material = new MeshPhongMaterial({
-              color: color2
-            });
-            const sphere = new Mesh(geometry, material);
-            sphere.position.set(x3, z, y4);
-            return sphere;
-          }
           scene.add(...spheres);
           scene.add(...planes);
           scene.add(...lines);
           const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+          const step = (() => {
+            let count = 0;
+            return () => {
+              const line = lines[count];
+              line.visible = true;
+              const name = line.name;
+              const layerIdx = parseInt(name.split("_")[1]);
+              const { targetId, sourceId } = line;
+              const keyTarget = `layer_${layerIdx}_nodeId_${targetId}`;
+              const sphereIdxTarget = id2sphereIdx.get(keyTarget);
+              if (sphereIdxTarget !== void 0) {
+                const sphere = spheres[sphereIdxTarget];
+                sphere.visible = true;
+              }
+              const keySource = `layer_${layerIdx}_nodeId_${sourceId}`;
+              const sphereIdxSource = id2sphereIdx.get(keySource);
+              if (sphereIdxSource !== void 0) {
+                const sphere = spheres[sphereIdxSource];
+                sphere.visible = true;
+              }
+              count++;
+              console.log(count);
+            };
+          })();
           const play = () => __async(this, null, function* () {
             lines.forEach((line) => {
               line.visible = false;
             });
+            spheres.forEach((sphere) => {
+              sphere.visible = false;
+            });
             for (let i = 0; i < lines.length; i++) {
-              const line = lines[i];
-              line.visible = true;
-              yield delay(200);
+              step();
+              yield delay(300);
             }
           });
           const composer = new EffectComposer(renderer);

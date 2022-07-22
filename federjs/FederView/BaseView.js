@@ -61,7 +61,7 @@ export default class BaseView {
     dom.appendChild(canvas);
 
     const searchViewLayoutData = await this.searchViewHandler(searchRes);
-    // console.log(searchViewLayoutData);
+    console.log(searchViewLayoutData);
 
     //setup info panel
     const infoPanel = document.createElement('div');
@@ -70,6 +70,7 @@ export default class BaseView {
 
     const setup3d = () => {
       const scene = new THREE.Scene();
+      let id2sphereIdx = new Map();
 
       //setup the orthographic camera
       let camera = new THREE.OrthographicCamera(
@@ -108,24 +109,28 @@ export default class BaseView {
         minY = 0;
       const setupSpheres = () => {
         let z0 = 0;
+        let count = 0;
         for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
           const { entryIds, fineIds, links, nodes } =
             searchViewLayoutData.visData[i];
           const { id2forcePos } = searchViewLayoutData;
-          entryPts.unshift(
+
+          entryPts.unshift([
             new THREE.Vector3(
               id2forcePos[entryIds[0]][0],
               z0,
               id2forcePos[entryIds[0]][1]
-            )
-          );
-          finePts.unshift(
+            ),
+            entryIds[0],
+          ]);
+          finePts.unshift([
             new THREE.Vector3(
               id2forcePos[fineIds[0]][0],
               z0,
               id2forcePos[fineIds[0]][1]
-            )
-          );
+            ),
+            fineIds[0],
+          ]);
 
           for (let j = 0; j < nodes.length; j++) {
             const node = nodes[j];
@@ -157,6 +162,8 @@ export default class BaseView {
             minY = Math.min(minY, y);
             spheres.push(sphere);
             sphere.name = `layer_${i}_node_${j}`;
+            id2sphereIdx.set(`layer_${i}_nodeId_${node.id}`, count);
+            count++;
           }
           z0 += -400;
         }
@@ -194,6 +201,7 @@ export default class BaseView {
       let lines = [];
       const setupLines = () => {
         let z0 = 0;
+        console.log(entryPts, finePts);
         for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
           const { links } = searchViewLayoutData.visData[i];
           for (let j = 0; j < links.length; j++) {
@@ -228,17 +236,26 @@ export default class BaseView {
               opacity,
               linewidth: 2,
               transparent: true,
+              depthWrite: true,
             });
             //create a new line
             const line = new THREE.Line(lineGeometry, material);
             line.name = `layer_${i}_link_${j}`;
-            line.sourcePt = points[0];
-            line.targetPt = points[1];
+            let sourceId = source.nodeId;
+            let targetId = target.nodeId;
+            if (sourceId && targetId) {
+              line.sourceId = sourceId;
+              line.targetId = targetId;
+            }
+
             if (opacity > 0) lines.push(line);
           }
           if (i > 0) {
-            const finePt = finePts[i];
-            const entryPt = entryPts[i - 1];
+            const sourceId = finePts[i][1];
+            const targetId = entryPts[i - 1][1];
+
+            const finePt = finePts[i][0];
+            const entryPt = entryPts[i - 1][0];
             const lineGeometry = new THREE.BufferGeometry().setFromPoints([
               entryPt,
               finePt,
@@ -247,9 +264,12 @@ export default class BaseView {
               color: new THREE.Color(0xeeee00),
             });
             const line = new THREE.Line(lineGeometry, material);
-            line.name = `link_up`;
-            line.sourcePt = finePt;
-            line.targetPt = entryPt;
+            line.name = `layer_${i}_link_up`;
+            if (sourceId && targetId) {
+              line.sourceId = sourceId;
+              line.targetId = targetId;
+              console.log(sourceId, targetId);
+            }
             lines.push(line);
           }
           z0 += -400;
@@ -257,50 +277,70 @@ export default class BaseView {
       };
       setupLines();
 
-      function makeSphere(x, y, z, radius, color, opacity) {
-        const geometry = new THREE.SphereGeometry(radius, 32, 32);
-        const material = new THREE.MeshPhongMaterial({
-          color,
-        });
-        const sphere = new THREE.Mesh(geometry, material);
-        sphere.position.set(x, z, y);
-        return sphere;
-      }
       scene.add(...spheres);
       scene.add(...planes);
       scene.add(...lines);
       const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      const step = (() => {
+        let count = 0;
+        return () => {
+          const line = lines[count];
+          line.visible = true;
+          const name = line.name;
+          const layerIdx = parseInt(name.split('_')[1]);
+          const { targetId, sourceId } = line;
+          const keyTarget = `layer_${layerIdx}_nodeId_${targetId}`;
+          const sphereIdxTarget = id2sphereIdx.get(keyTarget);
+          if (sphereIdxTarget !== undefined) {
+            const sphere = spheres[sphereIdxTarget];
+            sphere.visible = true;
+          }
+          const keySource = `layer_${layerIdx}_nodeId_${sourceId}`;
+          const sphereIdxSource = id2sphereIdx.get(keySource);
+          if (sphereIdxSource !== undefined) {
+            const sphere = spheres[sphereIdxSource];
+            sphere.visible = true;
+          }
+          count++;
+          console.log(count);
+        };
+      })();
       const play = async () => {
-        //delete all objects in the scene
+        //hide all lines and spheres in the scene
         lines.forEach((line) => {
           line.visible = false;
         });
-
-        // const startShere = makeSphere(
-        //   lines[0].sourcePt.x,
-        //   lines[0].sourcePt.z,
-        //   lines[0].sourcePt.y,
-        //   20,
-        //   0x0077ff,
-        //   1
-        // );
-        // scene.add(startShere);
+        spheres.forEach((sphere) => {
+          sphere.visible = false;
+        });
         for (let i = 0; i < lines.length; i++) {
-          const line = lines[i];
-          line.visible = true;
-          // const sphere = makeSphere(
-          //   line.targetPt.x,
-
-          //   line.targetPt.z,
-          //   line.targetPt.y,
-          //   20,
-          //   0x0077ff,
-          //   1
-          // );
-          // scene.add(line);
-          // scene.add(sphere);
-          await delay(200);
+          step();
+          await delay(300);
         }
+        // for (let i = 0; i < lines.length; i++) {
+        //   const line = lines[i];
+        //   line.visible = true;
+        //   //parse the line name
+        //   const name = line.name;
+        //   const layerIdx = parseInt(name.split('_')[1]);
+        //   const { targetId, sourceId } = line;
+        //   const keyTarget = `layer_${layerIdx}_nodeId_${targetId}`;
+        //   const sphereIdxTarget = id2sphereIdx.get(keyTarget);
+        //   // debugger;
+        //   // console.log(`id2sphereIdx: ${id2sphereIdx}`);
+        //   if (sphereIdxTarget !== undefined) {
+        //     const sphere = spheres[sphereIdxTarget];
+        //     sphere.visible = true;
+        //   }
+        //   const keySource = `layer_${layerIdx}_nodeId_${sourceId}`;
+        //   const sphereIdxSource = id2sphereIdx.get(keySource);
+        //   if (sphereIdxSource !== undefined) {
+        //     const sphere = spheres[sphereIdxSource];
+        //     sphere.visible = true;
+        //   }
+        //   await delay(200);
+        // }
       };
 
       const composer = new EffectComposer(renderer);
