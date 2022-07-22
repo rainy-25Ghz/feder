@@ -9614,10 +9614,10 @@ ${indentData}`);
   }
   Timer.prototype = timer.prototype = {
     constructor: Timer,
-    restart: function(callback, delay, time) {
+    restart: function(callback, delay2, time) {
       if (typeof callback !== "function")
         throw new TypeError("callback is not a function");
-      time = (time == null ? now() : +time) + (delay == null ? 0 : +delay);
+      time = (time == null ? now() : +time) + (delay2 == null ? 0 : +delay2);
       if (!this._next && taskTail !== this) {
         if (taskTail)
           taskTail._next = this;
@@ -9637,9 +9637,9 @@ ${indentData}`);
       }
     }
   };
-  function timer(callback, delay, time) {
+  function timer(callback, delay2, time) {
     var t = new Timer();
-    t.restart(callback, delay, time);
+    t.restart(callback, delay2, time);
     return t;
   }
   function timerFlush() {
@@ -9665,9 +9665,9 @@ ${indentData}`);
     }
   }
   function poke() {
-    var now3 = clock.now(), delay = now3 - clockLast;
-    if (delay > pokeDelay)
-      clockSkew -= delay, clockLast = now3;
+    var now3 = clock.now(), delay2 = now3 - clockLast;
+    if (delay2 > pokeDelay)
+      clockSkew -= delay2, clockLast = now3;
   }
   function nap() {
     var t0, t1 = taskHead, t2, time = Infinity;
@@ -9689,8 +9689,8 @@ ${indentData}`);
       return;
     if (timeout)
       timeout = clearTimeout(timeout);
-    var delay = time - clockNow;
-    if (delay > 24) {
+    var delay2 = time - clockNow;
+    if (delay2 > 24) {
       if (time < Infinity)
         timeout = setTimeout(wake, time - clock.now() - clockSkew);
       if (interval)
@@ -9703,13 +9703,13 @@ ${indentData}`);
   }
 
   // node_modules/d3-timer/src/timeout.js
-  function timeout_default(callback, delay, time) {
+  function timeout_default(callback, delay2, time) {
     var t = new Timer();
-    delay = delay == null ? 0 : +delay;
+    delay2 = delay2 == null ? 0 : +delay2;
     t.restart((elapsed) => {
       t.stop();
-      callback(elapsed + delay);
-    }, delay, time);
+      callback(elapsed + delay2);
+    }, delay2, time);
     return t;
   }
 
@@ -37079,6 +37079,7 @@ This message will only appear in development mode.`);
   };
 
   // federjs/FederView/BaseView.js
+  var delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   var BaseView = class {
     constructor({ viewParams, getVectorById }) {
       this.viewParams = viewParams;
@@ -37288,11 +37289,15 @@ This message will only appear in development mode.`);
           scene.add(...spheres);
           scene.add(...planes);
           scene.add(...lines);
-          const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
-          const step = (() => {
-            let count = 0;
-            return () => {
-              const line = lines[count];
+          const jump = (searchSteps) => {
+            lines.forEach((line) => {
+              line.visible = false;
+            });
+            spheres.forEach((sphere) => {
+              sphere.visible = false;
+            });
+            for (let i = 0; i < searchSteps; i++) {
+              const line = lines[i];
               line.visible = true;
               const name = line.name;
               const layerIdx = parseInt(name.split("_")[1]);
@@ -37309,10 +37314,18 @@ This message will only appear in development mode.`);
                 const sphere = spheres[sphereIdxSource];
                 sphere.visible = true;
               }
-              count++;
-              console.log(count);
-            };
-          })();
+            }
+          };
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.min = 0;
+          slider.max = lines.length - 1;
+          slider.value = 0;
+          slider.step = 1;
+          slider.addEventListener("input", (e) => {
+            const searchSteps = e.target.value;
+            jump(searchSteps);
+          });
           const play = () => __async(this, null, function* () {
             lines.forEach((line) => {
               line.visible = false;
@@ -37321,7 +37334,7 @@ This message will only appear in development mode.`);
               sphere.visible = false;
             });
             for (let i = 0; i < lines.length; i++) {
-              step();
+              jump(i);
               yield delay(300);
             }
           });
@@ -37510,6 +37523,7 @@ This message will only appear in development mode.`);
           playButton.innerText = "play";
           playButton.addEventListener("click", play);
           dom.appendChild(playButton);
+          dom.appendChild(slider);
           let inAnimation = false;
           const linearCameraAnimation = (startCam, endCam, duration = 2e3, callback = () => {
           }) => {
@@ -39893,14 +39907,14 @@ This message will only appear in development mode.`);
     ctx,
     elapsed,
     duration,
-    delay,
+    delay: delay2,
     animationType,
     searchViewLayoutData,
     federView
   }) {
     const { ease, voronoiStrokeWidth, canvasScale } = federView;
     const { nonNprobeClusters } = searchViewLayoutData;
-    let t = ease((elapsed - delay) / duration);
+    let t = ease((elapsed - delay2) / duration);
     if (t > 1 || t < 0)
       return;
     const opacity = animationType === ANIMATION_TYPE.enter ? t : 1 - t;
@@ -39923,12 +39937,12 @@ This message will only appear in development mode.`);
     federView,
     elapsed,
     duration,
-    delay,
+    delay: delay2,
     animationType
   }) {
     const { nprobeClusters } = searchViewLayoutData;
     const { ease, voronoiStrokeWidth, canvasScale } = federView;
-    let t = ease((elapsed - delay) / duration);
+    let t = ease((elapsed - delay2) / duration);
     if (t > 1 || t < 0)
       return;
     t = animationType === ANIMATION_TYPE.enter ? 1 - t : t;
@@ -39954,13 +39968,13 @@ This message will only appear in development mode.`);
     federView,
     elapsed,
     duration,
-    delay,
+    delay: delay2,
     animationType,
     newSearchViewType
   }) {
     const { targetNode } = searchViewLayoutData;
     const { ease, targetNodeR, canvasScale, targetNodeStrokeWidth } = federView;
-    let t = ease((elapsed - delay) / duration);
+    let t = ease((elapsed - delay2) / duration);
     if (newSearchViewType === SEARCH_VIEW_TYPE.project) {
       if (t < 0 || t > 1)
         return;
@@ -39988,12 +40002,12 @@ This message will only appear in development mode.`);
     federView,
     elapsed,
     duration,
-    delay,
+    delay: delay2,
     animationType
   }) {
     const { nprobeClusters } = searchViewLayoutData;
     const { ease, voronoiStrokeWidth, canvasScale } = federView;
-    let t = ease((elapsed - delay) / duration);
+    let t = ease((elapsed - delay2) / duration);
     if (t > 1 || t < 0)
       return;
     t = animationType === ANIMATION_TYPE.enter ? t : 1 - t;
@@ -40020,7 +40034,7 @@ This message will only appear in development mode.`);
     federView,
     elapsed,
     duration,
-    delay,
+    delay: delay2,
     animationType,
     newSearchViewType,
     oldSearchViewType
@@ -40035,7 +40049,7 @@ This message will only appear in development mode.`);
       nonTopKNodeOpacity,
       canvasScale
     } = federView;
-    let t = ease((elapsed - delay) / duration);
+    let t = ease((elapsed - delay2) / duration);
     if (t > 1 || t < 0)
       return;
     t = animationType === ANIMATION_TYPE.enter ? 1 - t : t;
@@ -40218,7 +40232,7 @@ This message will only appear in development mode.`);
     federView,
     elapsed,
     duration,
-    delay,
+    delay: delay2,
     newSearchViewType
   }) {
     const { colorScheme: colorScheme2, nonTopKNodes, topKNodes, nprobe } = searchViewLayoutData;
@@ -40231,7 +40245,7 @@ This message will only appear in development mode.`);
       nonTopKNodeOpacity,
       topKNodeOpacity
     } = federView;
-    let t = ease((elapsed - delay) / duration);
+    let t = ease((elapsed - delay2) / duration);
     if (t > 1 || t < 0)
       return;
     t = newSearchViewType === SEARCH_VIEW_TYPE.polar ? 1 - t : t;

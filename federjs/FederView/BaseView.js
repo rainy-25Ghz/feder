@@ -10,7 +10,7 @@ import { EffectComposer } from './jsm/postprocessing/EffectComposer';
 import { ShaderPass } from './jsm/postprocessing/ShaderPass';
 import { UnrealBloomPass } from './jsm/postprocessing/UnrealBloomPass';
 import { PinchGesture } from '@use-gesture/vanilla';
-
+const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 // import { VIEW_TYPE } from 'Types';
 
 export default class BaseView {
@@ -280,12 +280,22 @@ export default class BaseView {
       scene.add(...spheres);
       scene.add(...planes);
       scene.add(...lines);
-      const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-      const step = (() => {
-        let count = 0;
-        return () => {
-          const line = lines[count];
+     
+      /**
+       *
+       * @param {number} searchSteps
+       */
+      const jump = (searchSteps) => {
+        //hide lines and sheres
+        lines.forEach((line) => {
+          line.visible = false;
+        });
+        spheres.forEach((sphere) => {
+          sphere.visible = false;
+        });
+        for (let i = 0; i < searchSteps; i++) {
+          const line = lines[i];
           line.visible = true;
           const name = line.name;
           const layerIdx = parseInt(name.split('_')[1]);
@@ -302,10 +312,21 @@ export default class BaseView {
             const sphere = spheres[sphereIdxSource];
             sphere.visible = true;
           }
-          count++;
-          console.log(count);
-        };
-      })();
+        }
+      };
+
+      //create a slider
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = 0;
+      slider.max = lines.length - 1;
+      slider.value = 0;
+      slider.step = 1;
+      slider.addEventListener('input', (e) => {
+        const searchSteps = e.target.value;
+        jump(searchSteps);
+      });
+
       const play = async () => {
         //hide all lines and spheres in the scene
         lines.forEach((line) => {
@@ -315,7 +336,7 @@ export default class BaseView {
           sphere.visible = false;
         });
         for (let i = 0; i < lines.length; i++) {
-          step();
+          jump(i);
           await delay(300);
         }
         // for (let i = 0; i < lines.length; i++) {
@@ -621,6 +642,7 @@ export default class BaseView {
       playButton.innerText = 'play';
       playButton.addEventListener('click', play);
       dom.appendChild(playButton);
+      dom.appendChild(slider);
 
       let inAnimation = false; //check if in animation
       /**
