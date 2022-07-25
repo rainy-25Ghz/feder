@@ -37316,29 +37316,6 @@ This message will only appear in development mode.`);
               }
             }
           };
-          const slider = document.createElement("input");
-          slider.type = "range";
-          slider.min = 0;
-          slider.max = lines.length - 1;
-          slider.value = 0;
-          slider.step = 1;
-          slider.addEventListener("input", (e) => {
-            const searchSteps = e.target.value;
-            jump(searchSteps);
-          });
-          const play = () => __async(this, null, function* () {
-            lines.forEach((line) => {
-              line.visible = false;
-            });
-            spheres.forEach((sphere) => {
-              sphere.visible = false;
-            });
-            for (let i = 0; i < lines.length; i++) {
-              slider.value = i;
-              slider.dispatchEvent(new Event("input"));
-              yield delay(300);
-            }
-          });
           const composer = new EffectComposer(renderer);
           const setupPostProcessing = () => {
             const renderPass = new RenderPass(scene, camera);
@@ -37520,11 +37497,48 @@ This message will only appear in development mode.`);
           let then = 0;
           dom.appendChild(returnButton);
           dom.appendChild(infoPanel);
-          const playButton = document.createElement("button");
-          playButton.innerText = "play";
-          playButton.addEventListener("click", play);
-          dom.appendChild(playButton);
+          const playToggle = document.createElement("button");
+          playToggle.innerText = "play";
+          let toggled = false;
+          dom.appendChild(playToggle);
+          const step = () => {
+            let currentVal = parseInt(slider.value);
+            jump(currentVal + 1);
+            slider.value = currentVal + 1;
+          };
+          const slider = document.createElement("input");
+          slider.type = "range";
+          slider.min = 0;
+          slider.max = lines.length - 1;
+          slider.value = lines.length - 1;
+          slider.step = 1;
+          slider.addEventListener("input", (e) => {
+            toggled = false;
+            playToggle.innerText = "play";
+            const searchSteps = e.target.value;
+            jump(searchSteps);
+          });
           dom.appendChild(slider);
+          const play = () => __async(this, null, function* () {
+            while (parseInt(slider.value) <= parseInt(slider.max)) {
+              if (!toggled)
+                return;
+              step();
+              yield delay(300);
+            }
+            toggled = false;
+            playToggle.innerText = "play";
+          });
+          playToggle.addEventListener("click", () => {
+            if (!toggled) {
+              playToggle.innerText = "pause";
+              toggled = true;
+              play();
+            } else {
+              playToggle.innerText = "play";
+              toggled = false;
+            }
+          });
           let inAnimation = false;
           const linearCameraAnimation = (startCam, endCam, duration = 2e3, callback = () => {
           }) => {

@@ -281,7 +281,6 @@ export default class BaseView {
       scene.add(...planes);
       scene.add(...lines);
 
-     
       /**
        *
        * @param {number} searchSteps
@@ -313,57 +312,6 @@ export default class BaseView {
             sphere.visible = true;
           }
         }
-      };
-
-      //create a slider
-      const slider = document.createElement('input');
-      slider.type = 'range';
-      slider.min = 0;
-      slider.max = lines.length - 1;
-      slider.value = 0;
-      slider.step = 1;
-      slider.addEventListener('input', (e) => {
-        const searchSteps = e.target.value;
-        jump(searchSteps);
-      });
-      
-
-      const play = async () => {
-        //hide all lines and spheres in the scene
-        lines.forEach((line) => {
-          line.visible = false;
-        });
-        spheres.forEach((sphere) => {
-          sphere.visible = false;
-        });
-        for (let i = 0; i < lines.length; i++) {
-          slider.value = i;
-          slider.dispatchEvent(new Event('input'));
-          await delay(300);
-        }
-        // for (let i = 0; i < lines.length; i++) {
-        //   const line = lines[i];
-        //   line.visible = true;
-        //   //parse the line name
-        //   const name = line.name;
-        //   const layerIdx = parseInt(name.split('_')[1]);
-        //   const { targetId, sourceId } = line;
-        //   const keyTarget = `layer_${layerIdx}_nodeId_${targetId}`;
-        //   const sphereIdxTarget = id2sphereIdx.get(keyTarget);
-        //   // debugger;
-        //   // console.log(`id2sphereIdx: ${id2sphereIdx}`);
-        //   if (sphereIdxTarget !== undefined) {
-        //     const sphere = spheres[sphereIdxTarget];
-        //     sphere.visible = true;
-        //   }
-        //   const keySource = `layer_${layerIdx}_nodeId_${sourceId}`;
-        //   const sphereIdxSource = id2sphereIdx.get(keySource);
-        //   if (sphereIdxSource !== undefined) {
-        //     const sphere = spheres[sphereIdxSource];
-        //     sphere.visible = true;
-        //   }
-        //   await delay(200);
-        // }
       };
 
       const composer = new EffectComposer(renderer);
@@ -640,11 +588,52 @@ export default class BaseView {
       let then = 0;
       dom.appendChild(returnButton);
       dom.appendChild(infoPanel);
-      const playButton = document.createElement('button');
-      playButton.innerText = 'play';
-      playButton.addEventListener('click', play);
-      dom.appendChild(playButton);
+
+      //create play toggle button
+      const playToggle = document.createElement('button');
+      playToggle.innerText = 'play';
+      let toggled = false;
+      dom.appendChild(playToggle);
+
+      const step = () => {
+        let currentVal = parseInt(slider.value);
+        jump(currentVal + 1);
+        slider.value = currentVal + 1;
+      };
+
+      //create a slider
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = 0;
+      slider.max = lines.length - 1;
+      slider.value =lines.length - 1;
+      slider.step = 1;
+      slider.addEventListener('input', (e) => {
+        toggled = false;
+        playToggle.innerText = 'play';
+        const searchSteps = e.target.value;
+        jump(searchSteps);
+      });
       dom.appendChild(slider);
+      const play = async () => {
+        while (parseInt(slider.value) <= parseInt(slider.max)) {
+          if (!toggled) return;
+          step();
+          await delay(300);
+        }
+        toggled = false;
+        playToggle.innerText = 'play';
+      };
+      playToggle.addEventListener('click', () => {
+        if (!toggled) {
+          playToggle.innerText = 'pause';
+          toggled = true;
+          play(); //start playing
+        } else {
+          playToggle.innerText = 'play';
+          toggled = false;
+        }
+      });
 
       let inAnimation = false; //check if in animation
       /**
