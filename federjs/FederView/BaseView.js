@@ -589,9 +589,15 @@ export default class BaseView {
       dom.appendChild(returnButton);
       dom.appendChild(infoPanel);
 
+
+      //play video emoji
+      const playText='play ▶️';
+      const pauseText='pause ⏸';
+
       //create play toggle button
       const playToggle = document.createElement('button');
-      playToggle.innerText = 'play';
+      playToggle.innerText = playText;
+      playToggle.style.width = '100px';
       let toggled = false;
       dom.appendChild(playToggle);
 
@@ -610,7 +616,7 @@ export default class BaseView {
       slider.step = 1;
       slider.addEventListener('input', (e) => {
         toggled = false;
-        playToggle.innerText = 'play';
+        playToggle.innerText = playText;
         const searchSteps = e.target.value;
         jump(searchSteps);
       });
@@ -622,15 +628,15 @@ export default class BaseView {
           await delay(300);
         }
         toggled = false;
-        playToggle.innerText = 'play';
+        playToggle.innerText = playText;
       };
       playToggle.addEventListener('click', () => {
         if (!toggled) {
-          playToggle.innerText = 'pause';
+          playToggle.innerText = pauseText;
           toggled = true;
           play(); //start playing
         } else {
-          playToggle.innerText = 'play';
+          playToggle.innerText = playText;
           toggled = false;
         }
       });

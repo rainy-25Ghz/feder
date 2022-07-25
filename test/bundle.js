@@ -37497,8 +37497,11 @@ This message will only appear in development mode.`);
           let then = 0;
           dom.appendChild(returnButton);
           dom.appendChild(infoPanel);
+          const playText = "play \u25B6\uFE0F";
+          const pauseText = "pause \u23F8";
           const playToggle = document.createElement("button");
-          playToggle.innerText = "play";
+          playToggle.innerText = playText;
+          playToggle.style.width = "100px";
           let toggled = false;
           dom.appendChild(playToggle);
           const step = () => {
@@ -37514,7 +37517,7 @@ This message will only appear in development mode.`);
           slider.step = 1;
           slider.addEventListener("input", (e) => {
             toggled = false;
-            playToggle.innerText = "play";
+            playToggle.innerText = playText;
             const searchSteps = e.target.value;
             jump(searchSteps);
           });
@@ -37527,15 +37530,15 @@ This message will only appear in development mode.`);
               yield delay(300);
             }
             toggled = false;
-            playToggle.innerText = "play";
+            playToggle.innerText = playText;
           });
           playToggle.addEventListener("click", () => {
             if (!toggled) {
-              playToggle.innerText = "pause";
+              playToggle.innerText = pauseText;
               toggled = true;
               play();
             } else {
-              playToggle.innerText = "play";
+              playToggle.innerText = playText;
               toggled = false;
             }
           });
