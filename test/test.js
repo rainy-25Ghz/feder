@@ -13,7 +13,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document
     .querySelector(domSelector)
     .appendChild(
-      hnsw_feder.setSearchParams({ k: 6, nprobe: 8, ef: 9 }).searchRandTestVec()
+      hnsw_feder.setSearchParams({ k: 6, nprobe: 8, ef: 9 }).searchById(15953)
     );
 });
 //   // const ivfflat_feder = getFederIvfflatLite();  // without images mapping.

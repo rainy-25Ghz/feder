@@ -62,6 +62,7 @@ export default class BaseView {
 
     const searchViewLayoutData = await this.searchViewHandler(searchRes);
     console.log(searchViewLayoutData);
+    const { id2forcePos } = searchViewLayoutData;
 
     //setup info panel
     const infoPanel = document.createElement('div');
@@ -100,6 +101,7 @@ export default class BaseView {
       };
       setupLights();
 
+      let targetSpheres = [];
       let spheres = [];
       let entryPts = [];
       let finePts = [];
@@ -111,6 +113,13 @@ export default class BaseView {
         let z0 = 0;
         let count = 0;
         for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
+          let targetSphere = new THREE.Mesh(
+            new SphereGeometry(20, 32, 32),
+            new THREE.MeshBasicMaterial({ color: 0xffffff })
+          );
+          targetSphere.position.set(0, z0, 0);
+          targetSphere.name = `layer_${i}_targetSphere`;
+          targetSpheres.unshift(targetSphere);
           const { entryIds, fineIds, links, nodes } =
             searchViewLayoutData.visData[i];
           const { id2forcePos } = searchViewLayoutData;
@@ -197,20 +206,28 @@ export default class BaseView {
       };
 
       setupPlanes();
-
-      let lines = [];
+      let lines = [],
+        targetLines = [];
       const setupLines = () => {
         let z0 = 0;
-        console.log(entryPts, finePts);
         for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
           const { links } = searchViewLayoutData.visData[i];
           for (let j = 0; j < links.length; j++) {
             const link = links[j];
-            const { source, target } = link;
+            let { source, target } = link;
             //create points array
             const points = [];
-            points.push(new THREE.Vector3(source.x, z0, source.y));
-            points.push(new THREE.Vector3(target.x, z0, target.y));
+            if (!(typeof source === 'object')) {
+              let sourceId = parseInt(source);
+              let targetId = parseInt(target);
+              let [x1, y1] = id2forcePos[sourceId];
+              let [x2, y2] = id2forcePos[targetId];
+              points.push(new THREE.Vector3(x1, z0, y1));
+              points.push(new THREE.Vector3(x2, z0, y2));
+            } else {
+              points.push(new THREE.Vector3(source.x, z0, source.y));
+              points.push(new THREE.Vector3(target.x, z0, target.y));
+            }
             const lineGeometry = new THREE.BufferGeometry().setFromPoints(
               points
             );
@@ -246,6 +263,12 @@ export default class BaseView {
             if (sourceId && targetId) {
               line.sourceId = sourceId;
               line.targetId = targetId;
+            } else if (
+              typeof source === 'string' &&
+              typeof target === 'string'
+            ) {
+              line.sourceId = parseInt(source);
+              line.targetId = parseInt(target);
             }
 
             if (opacity > 0) lines.push(line);
@@ -271,6 +294,22 @@ export default class BaseView {
               console.log(sourceId, targetId);
             }
             lines.push(line);
+
+            const targetLineGeometry = new THREE.BufferGeometry().setFromPoints(
+              [
+                new THREE.Vector3(0, entryPt.y, 0),
+                new THREE.Vector3(0, finePt.y, 0),
+              ]
+            );
+            const targetLineMaterial = new THREE.LineBasicMaterial({
+              color: new THREE.Color(0xeeeeee),
+            });
+            const targetLine = new THREE.Line(
+              targetLineGeometry,
+              targetLineMaterial
+            );
+            targetLine.name = `layer_${i}_link_target`;
+            targetLines.unshift(targetLine);
           }
           z0 += -400;
         }
@@ -280,6 +319,8 @@ export default class BaseView {
       scene.add(...spheres);
       scene.add(...planes);
       scene.add(...lines);
+      scene.add(...targetLines);
+      scene.add(...targetSpheres);
 
       /**
        *
@@ -293,11 +334,28 @@ export default class BaseView {
         spheres.forEach((sphere) => {
           sphere.visible = false;
         });
+        targetLines.forEach((line) => {
+          line.visible = false;
+        });
+        targetSpheres.forEach((sphere) => {
+          sphere.visible = false;
+        });
+
         for (let i = 0; i < searchSteps; i++) {
           const line = lines[i];
           line.visible = true;
           const name = line.name;
           const layerIdx = parseInt(name.split('_')[1]);
+          if (name.includes('link_up')) {
+            // console.log(targetLines)
+            targetLines.forEach((targetLine) => {
+              if (targetLine.name.includes(`layer_${layerIdx}`)) {
+                targetLine.visible = true;
+                console.log(targetLine.name);
+              }
+            });
+          }
+          targetSpheres[layerIdx].visible = true;
           const { targetId, sourceId } = line;
           const keyTarget = `layer_${layerIdx}_nodeId_${targetId}`;
           const sphereIdxTarget = id2sphereIdx.get(keyTarget);
@@ -589,10 +647,9 @@ export default class BaseView {
       dom.appendChild(returnButton);
       dom.appendChild(infoPanel);
 
-
       //play video emoji
-      const playText='play ▶️';
-      const pauseText='pause ⏸';
+      const playText = 'play ▶️';
+      const pauseText = 'pause ⏸';
 
       //create play toggle button
       const playToggle = document.createElement('button');
@@ -612,7 +669,7 @@ export default class BaseView {
       slider.type = 'range';
       slider.min = 0;
       slider.max = lines.length - 1;
-      slider.value =lines.length - 1;
+      slider.value = lines.length - 1;
       slider.step = 1;
       slider.addEventListener('input', (e) => {
         toggled = false;
@@ -706,20 +763,7 @@ export default class BaseView {
             pickingObjects.forEach((child) => {
               child.visible = true;
             });
-            // console.log('lastCam', lastCam.position, lastCam.rotation);
-            // console.log('camera', camera.position, camera.rotation);
-            // //recover the camera
-            // camera.position.set(
-            //   lastCam.position.x,
-            //   lastCam.position.y,
-            //   lastCam.position.z
-            // );
-            // camera.rotation.set(
-            //   lastCam.rotation.x,
-            //   lastCam.rotation.y,
-            //   lastCam.rotation.z
-            // );
-            // camera.updateProjectionMatrix();
+
             controls.update();
 
             lastCam = null;
@@ -727,11 +771,7 @@ export default class BaseView {
         } else {
           //disable the controls
           controls.enabled = false;
-          // controls.enableDamping = false;
-          // controls.enablePan = false;
-          // controls.enableRotate = false;
-          // controls.enableZoom = true;
-          //enable the button
+
           returnButton.disabled = false;
           lastCam = camera.clone();
           if (mouseDown && shift && startX && startY) {

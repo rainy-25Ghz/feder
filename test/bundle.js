@@ -37125,6 +37125,7 @@ This message will only appear in development mode.`);
         dom.appendChild(canvas);
         const searchViewLayoutData = yield this.searchViewHandler(searchRes);
         console.log(searchViewLayoutData);
+        const { id2forcePos } = searchViewLayoutData;
         const infoPanel = document.createElement("div");
         infoPanel.style.color = "#fff";
         const setup3d = () => {
@@ -37143,6 +37144,7 @@ This message will only appear in development mode.`);
             scene.add(ambientLight);
           };
           setupLights();
+          let targetSpheres = [];
           let spheres = [];
           let entryPts = [];
           let finePts = [];
@@ -37151,14 +37153,18 @@ This message will only appear in development mode.`);
             let z0 = 0;
             let count = 0;
             for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
+              let targetSphere = new Mesh(new SphereGeometry(20, 32, 32), new MeshBasicMaterial({ color: 16777215 }));
+              targetSphere.position.set(0, z0, 0);
+              targetSphere.name = `layer_${i}_targetSphere`;
+              targetSpheres.unshift(targetSphere);
               const { entryIds, fineIds, links, nodes } = searchViewLayoutData.visData[i];
-              const { id2forcePos } = searchViewLayoutData;
+              const { id2forcePos: id2forcePos2 } = searchViewLayoutData;
               entryPts.unshift([
-                new Vector3(id2forcePos[entryIds[0]][0], z0, id2forcePos[entryIds[0]][1]),
+                new Vector3(id2forcePos2[entryIds[0]][0], z0, id2forcePos2[entryIds[0]][1]),
                 entryIds[0]
               ]);
               finePts.unshift([
-                new Vector3(id2forcePos[fineIds[0]][0], z0, id2forcePos[fineIds[0]][1]),
+                new Vector3(id2forcePos2[fineIds[0]][0], z0, id2forcePos2[fineIds[0]][1]),
                 fineIds[0]
               ]);
               for (let j = 0; j < nodes.length; j++) {
@@ -37218,18 +37224,26 @@ This message will only appear in development mode.`);
             }
           };
           setupPlanes();
-          let lines = [];
+          let lines = [], targetLines = [];
           const setupLines = () => {
             let z0 = 0;
-            console.log(entryPts, finePts);
             for (let i = searchViewLayoutData.visData.length - 1; i >= 0; i--) {
               const { links } = searchViewLayoutData.visData[i];
               for (let j = 0; j < links.length; j++) {
                 const link = links[j];
-                const { source, target } = link;
+                let { source, target } = link;
                 const points = [];
-                points.push(new Vector3(source.x, z0, source.y));
-                points.push(new Vector3(target.x, z0, target.y));
+                if (!(typeof source === "object")) {
+                  let sourceId2 = parseInt(source);
+                  let targetId2 = parseInt(target);
+                  let [x1, y1] = id2forcePos[sourceId2];
+                  let [x22, y22] = id2forcePos[targetId2];
+                  points.push(new Vector3(x1, z0, y1));
+                  points.push(new Vector3(x22, z0, y22));
+                } else {
+                  points.push(new Vector3(source.x, z0, source.y));
+                  points.push(new Vector3(target.x, z0, target.y));
+                }
                 const lineGeometry = new BufferGeometry().setFromPoints(points);
                 let color2 = new Color2(), opacity = 1;
                 if (link.type === HNSW_LINK_TYPE.Fine) {
@@ -37257,6 +37271,9 @@ This message will only appear in development mode.`);
                 if (sourceId && targetId) {
                   line.sourceId = sourceId;
                   line.targetId = targetId;
+                } else if (typeof source === "string" && typeof target === "string") {
+                  line.sourceId = parseInt(source);
+                  line.targetId = parseInt(target);
                 }
                 if (opacity > 0)
                   lines.push(line);
@@ -37281,6 +37298,16 @@ This message will only appear in development mode.`);
                   console.log(sourceId, targetId);
                 }
                 lines.push(line);
+                const targetLineGeometry = new BufferGeometry().setFromPoints([
+                  new Vector3(0, entryPt.y, 0),
+                  new Vector3(0, finePt.y, 0)
+                ]);
+                const targetLineMaterial = new LineBasicMaterial({
+                  color: new Color2(15658734)
+                });
+                const targetLine = new Line(targetLineGeometry, targetLineMaterial);
+                targetLine.name = `layer_${i}_link_target`;
+                targetLines.unshift(targetLine);
               }
               z0 += -400;
             }
@@ -37289,6 +37316,8 @@ This message will only appear in development mode.`);
           scene.add(...spheres);
           scene.add(...planes);
           scene.add(...lines);
+          scene.add(...targetLines);
+          scene.add(...targetSpheres);
           const jump = (searchSteps) => {
             lines.forEach((line) => {
               line.visible = false;
@@ -37296,11 +37325,26 @@ This message will only appear in development mode.`);
             spheres.forEach((sphere) => {
               sphere.visible = false;
             });
+            targetLines.forEach((line) => {
+              line.visible = false;
+            });
+            targetSpheres.forEach((sphere) => {
+              sphere.visible = false;
+            });
             for (let i = 0; i < searchSteps; i++) {
               const line = lines[i];
               line.visible = true;
               const name = line.name;
               const layerIdx = parseInt(name.split("_")[1]);
+              if (name.includes("link_up")) {
+                targetLines.forEach((targetLine) => {
+                  if (targetLine.name.includes(`layer_${layerIdx}`)) {
+                    targetLine.visible = true;
+                    console.log(targetLine.name);
+                  }
+                });
+              }
+              targetSpheres[layerIdx].visible = true;
               const { targetId, sourceId } = line;
               const keyTarget = `layer_${layerIdx}_nodeId_${targetId}`;
               const sphereIdxTarget = id2sphereIdx.get(keyTarget);
@@ -41219,7 +41263,7 @@ This message will only appear in development mode.`);
   var domSelector = "#container";
   window.addEventListener("DOMContentLoaded", () => __async(void 0, null, function* () {
     const hnsw_feder = yield getFederHnsw();
-    document.querySelector(domSelector).appendChild(hnsw_feder.setSearchParams({ k: 6, nprobe: 8, ef: 9 }).searchRandTestVec());
+    document.querySelector(domSelector).appendChild(hnsw_feder.setSearchParams({ k: 6, nprobe: 8, ef: 9 }).searchById(15953));
   }));
 })();
 /**
